@@ -48,7 +48,7 @@ typedef struct {
 } qoaplay_desc;
 
 qoaplay_desc *qoaplay_open(char *path) {
-	FILE *file = fopen(path, "r");
+	FILE *file = fopen(path, "rb");
 	if (!file) {
 		return NULL;
 	}
