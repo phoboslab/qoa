@@ -15,6 +15,6 @@ Audio samples in WAV & QOA format can be found at: https://phoboslab.org/files/q
 ⚠️ The format is likely to change in the coming weeks. Once it is finalized, 
 a detailed specification will be published.
 
-⚠️ If you are experimenting with QOA, please _very_ be careful, especially when
+⚠️ If you are experimenting with QOA, please be _very_ careful, especially when
 wearing headphones. You may unexpectedly produce garbage output that can damage
 your ears. I had more than a few close calls.
