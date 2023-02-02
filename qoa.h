@@ -424,13 +424,19 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 
 	unsigned char *bytes = QOA_MALLOC(encoded_size);
 
-	/* Set the initial LMS weights to {0, 0, -1, 2}. This helps with the 
-	prediction of the first few ms of a file. */
 	for (int c = 0; c < qoa->channels; c++) {
+		/* Set the initial LMS weights to {0, 0, -1, 2}. This helps with the 
+		prediction of the first few ms of a file. */
 		qoa->lms[c].weights[0] = 0;
 		qoa->lms[c].weights[1] = 0;
 		qoa->lms[c].weights[2] = -(1<<13);
 		qoa->lms[c].weights[3] =  (1<<14);
+
+		/* Explicitly set the history samples to 0, as we might have some
+		garbage in there. */
+		for (int i = 0; i < QOA_LMS_LEN; i++) {
+			qoa->lms[c].history[i] = 0;
+		}
 	}
 
 
