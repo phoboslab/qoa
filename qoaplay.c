@@ -172,11 +172,14 @@ void qoaplay_seek_frame(qoaplay_desc *qp, int frame) {
 /* -----------------------------------------------------------------------------
 	The application code */
 
-/* getch() for windows/linux */
+/* getch() for windows/mac/linux */
 
-#ifdef _WIN32
+#if defined(_WIN32)
 	#include <conio.h>
 #else
+	#if defined(__APPLE__)
+		#include <unistd.h>
+	#endif
 	#include <termios.h>
 	int getch(void) {
 		struct termios oldattr, newattr;
