@@ -46,10 +46,8 @@ struct {
 		} frame_header;            // = 64 bits
 
 		struct {
-			struct {
-				int8_t history;    // quantized to 8 bits
-				int8_t weight;     // quantized to 8 bits
-			} lms_entry[4];        // = 64 bits
+			int16_t history[4];    // = 64 bits
+			int16_t weights[4];    // = 64 bits
 		} lms_state[num_channels]; 
 
 		qoa_slice_t slices[256][num_channels]; // = 64 bits each
@@ -100,7 +98,7 @@ extern "C" {
 #define QOA_MAGIC 0x716f6166 /* 'qoaf' */
 
 #define QOA_FRAME_SIZE(channels, slices) \
-	(8 + QOA_LMS_LEN * 2 * channels + 8 * slices * channels)
+	(8 + QOA_LMS_LEN * 4 * channels + 8 * slices * channels)
 
 typedef struct {
 	int history[QOA_LMS_LEN];
@@ -325,14 +323,14 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	The state in memory is truncated to this precision to keep it consistent 
 	with the decoder that loads these samples/weights. */
 	for (int c = 0; c < channels; c++) {
-		qoa_uint64_t state_header = 0;
+		qoa_uint64_t weights = 0;
+		qoa_uint64_t history = 0;
 		for (int i = 0; i < QOA_LMS_LEN; i++) {
-			bytes[p++] = qoa_clamp(qoa->lms[c].history[i] >> 8, -128, 127);
-			bytes[p++] = qoa_clamp(qoa->lms[c].weights[i] >> 8, -128, 127);
-
-			qoa->lms[c].history[i] &= 0xffffff00;
-			qoa->lms[c].weights[i] &= 0xffffff00;
+			history = (history << 16) | (qoa->lms[c].history[i] & 0xffff);
+			weights = (weights << 16) | (qoa->lms[c].weights[i] & 0xffff);
 		}
+		qoa_write_u64(history, bytes, &p);
+		qoa_write_u64(weights, bytes, &p);
 	}
 
 	/* We encode all samples with the channels interleaved on a slice level.
@@ -419,7 +417,7 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 	unsigned int num_slices = (qoa->samples + QOA_SLICE_LEN-1) / QOA_SLICE_LEN;
 	unsigned int encoded_size = 8 +                    /* 8 byte file header */
 		num_frames * 8 +                               /* 8 byte frame headers */
-		num_frames * QOA_LMS_LEN * 2 * qoa->channels + /* 4 * 2 bytes lms state per channel */
+		num_frames * QOA_LMS_LEN * 4 * qoa->channels + /* 4 * 4 bytes lms state per channel */
 		num_slices * 8 * qoa->channels;                /* 8 byte slices */
 
 	unsigned char *bytes = QOA_MALLOC(encoded_size);
@@ -504,7 +502,7 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	unsigned int p = 0;
 	*frame_len = 0;
 
-	if (size < 8 + 8 * qoa->channels) {
+	if (size < 8 + QOA_LMS_LEN * 4 * qoa->channels) {
 		return 0;
 	}
 
@@ -515,7 +513,7 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	int samples    = (frame_header >> 16) & 0x00ffff;
 	int frame_size = (frame_header      ) & 0x00ffff;
 
-	int data_size = frame_size - 8 - QOA_LMS_LEN * 2 * channels;
+	int data_size = frame_size - 8 - QOA_LMS_LEN * 4 * channels;
 	int num_slices = data_size / 8;
 	int max_total_samples = num_slices * QOA_SLICE_LEN;
 
@@ -529,13 +527,15 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	}
 
 
-	/* Read the LMS state: 4 x 2 bytes per channel. The history samples and
-	LMS weights are quantized to 8bit in the file and are dequantized here with
-	a simple left-shift. */
+	/* Read the LMS state: 4 x 2 bytes history, 4 x 2 bytes weights per channel */
 	for (int c = 0; c < channels; c++) {
+		qoa_uint64_t history = qoa_read_u64(bytes, &p);
+		qoa_uint64_t weights = qoa_read_u64(bytes, &p);
 		for (int i = 0; i < QOA_LMS_LEN; i++) {
-			qoa->lms[c].history[i] = ((signed char)bytes[p++]) << 8;
-			qoa->lms[c].weights[i] = ((signed char)bytes[p++]) << 8;
+			qoa->lms[c].history[i] = ((signed short)(history >> 48));
+			history <<= 16;
+			qoa->lms[c].weights[i] = ((signed short)(weights >> 48));
+			weights <<= 16;
 		}
 	}
 
