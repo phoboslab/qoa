@@ -13,7 +13,9 @@ Audio samples in WAV & QOA format can be found at: https://phoboslab.org/files/q
 ⚠️ This implementation has not yet been fuzzed. Don't use it with untrusted input.
 
 ⚠️ The format is likely to change in the coming weeks. Once it is finalized, 
-a detailed specification will be published.
+a detailed specification will be published. Note that files encoded with a current
+development versions will likely not work (or produce horrible sounds) when 
+decoded in a slightly older or newer version.
 
 ⚠️ If you are experimenting with QOA, please be _very_ careful, especially when
 wearing headphones. You may unexpectedly produce garbage output that can damage
