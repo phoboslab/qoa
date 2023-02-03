@@ -18,3 +18,14 @@ a detailed specification will be published.
 ⚠️ If you are experimenting with QOA, please be _very_ careful, especially when
 wearing headphones. You may unexpectedly produce garbage output that can damage
 your ears. I had more than a few close calls.
+
+## Alternative Implementations of QOA
+
+- [pfusik/qoa-ci](https://github.com/pfusik/qoa-ci) - Ć, transpiling to
+[C](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.c),
+[C++](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.cpp),
+[C#](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.cs),
+[Java](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOADecoder.java),
+[JavaScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.js),
+[Python](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.py)
+and [Swift](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.swift)
