@@ -319,9 +319,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 		(qoa_uint64_t)frame_size
 	), bytes, &p);
 
-	/* Write the current LMS state, quantized to 8bit by a simple right shift. 
-	The state in memory is truncated to this precision to keep it consistent 
-	with the decoder that loads these samples/weights. */
+	/* Write the current LMS state */
 	for (int c = 0; c < channels; c++) {
 		qoa_uint64_t weights = 0;
 		qoa_uint64_t history = 0;
