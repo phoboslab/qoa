@@ -31,3 +31,4 @@ your ears. I had more than a few close calls.
 [JavaScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.js),
 [Python](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.py)
 and [Swift](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.swift)
+- [qoa-decoder.js](https://gist.github.com/mattdesl/8bab51bdb2c5e80668c33921420fefee) - JavaScript decoder
