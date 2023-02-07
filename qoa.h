@@ -103,6 +103,7 @@ extern "C" {
 typedef struct {
 	int history[QOA_LMS_LEN];
 	int weights[QOA_LMS_LEN];
+	long long error;
 } qoa_lms_t;
 
 typedef struct {
@@ -358,8 +359,16 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 				for (int si = slice_start; si < slice_end; si += channels) {
 					int sample = sample_data[si];
-					int predicted = qoa_lms_predict(&lms);
 
+					/* Noise shaping. Move the quantization noise into the high 
+					frequencies, but only if our signal is badly predicted. If
+					the sum of the weights is much lower than (1<<13), we will
+					correct for more of the quantization noise. */
+					int p = lms.weights[0] + lms.weights[1] + lms.weights[2] + lms.weights[3];
+					int shape_weight = qoa_clamp(10240 - p, 0, 8192);
+					sample -= (lms.error * shape_weight) >> 13;
+
+					int predicted = qoa_lms_predict(&lms);
 					int residual = sample - predicted;
 					int scaled = qoa_div(residual, scalefactor);
 					int clamped = qoa_clamp(scaled, -8, 8);
@@ -367,8 +376,8 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					int dequantized = qoa_dequant_tab[scalefactor][quantized];
 					int reconstructed = qoa_clamp(predicted + dequantized, -32768, 32767);
 
-					int error = (sample - reconstructed);
-					current_error += error * error;
+					lms.error = (reconstructed - sample);
+					current_error += lms.error * lms.error;
 					if (current_error > best_error) {
 						break;
 					}
@@ -433,6 +442,7 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 		for (int i = 0; i < QOA_LMS_LEN; i++) {
 			qoa->lms[c].history[i] = 0;
 		}
+		qoa->lms[c].error = 0;
 	}
 
 
