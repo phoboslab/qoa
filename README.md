@@ -29,6 +29,7 @@ your ears. I had more than a few close calls.
 [C#](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.cs),
 [Java](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOADecoder.java),
 [JavaScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.js),
-[Python](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.py)
-and [Swift](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.swift)
+[Python](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.py),
+[Swift](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.swift)
+and [TypeScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.ts)
 - [qoa-format](https://github.com/mattdesl/qoa-format) - JavaScript encoder/decoder
