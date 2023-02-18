@@ -369,7 +369,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					int dequantized = qoa_dequant_tab[scalefactor][quantized];
 					int reconstructed = qoa_clamp(predicted + dequantized, -32768, 32767);
 
-					int error = (sample - reconstructed);
+					long long error = (sample - reconstructed);
 					current_error += error * error;
 					if (current_error > best_error) {
 						break;
