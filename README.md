@@ -1,3 +1,5 @@
+![QOA Logo](https://qoaformat.org/qoa-logo.svg)
+
 # QOA - The “Quite OK Audio Format” for fast, lossy audio compression
 
 Single-file MIT licensed library for C/C++
@@ -5,9 +7,9 @@ Single-file MIT licensed library for C/C++
 See [qoa.h](https://github.com/phoboslab/qoa/blob/master/qoa.h) for
 the documentation and format specification.
 
-More info at: https://phoboslab.org/log/2023/02/qoa-time-domain-audio-compression
+More info at: https://qoaformat.org
 
-Audio samples in WAV & QOA format can be found at: https://phoboslab.org/files/qoa-samples/
+Audio samples in WAV & QOA format can be found at: https://qoaformat.org/samples/
 
 
 ⚠️ This implementation has not yet been fuzzed. Don't use it with untrusted input.
