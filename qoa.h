@@ -9,7 +9,7 @@ QOA - The "Quite OK Audio" format for fast, lossy audio compression
 -- Data Format
 
 A QOA file has an 8 byte file header, followed by a number of frames. Each frame 
-consists of an 8 byte frame header, the current 8 byte en-/decoder state per
+consists of an 8 byte frame header, the current 16 byte en-/decoder state per
 channel and 256 slices per channel. Each slice is 8 bytes wide and encodes 20 
 samples of audio data.
 
