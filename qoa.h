@@ -158,7 +158,7 @@ the higher end. Note that the residual zero is identical to the lowest positive
 value. This is mostly fine, since the qoa_div() function always rounds away 
 from zero. */
 
-static int qoa_quant_tab[17] = {
+static const int qoa_quant_tab[17] = {
 	7, 7, 7, 5, 5, 3, 3, 1, /* -8..-1 */
 	0,                      /*  0     */
 	0, 2, 2, 4, 4, 6, 6, 6  /*  1.. 8 */
@@ -175,7 +175,7 @@ scalefactor 2048 times the quant range of 8 we can encode residuals up to 2**14.
 The scalefactor values are computed as:
 scalefactor_tab[s] <- round(pow(s + 1, 2.75)) */
 
-static int qoa_scalefactor_tab[16] = {
+static const int qoa_scalefactor_tab[16] = {
 	1, 7, 21, 45, 84, 138, 211, 304, 421, 562, 731, 928, 1157, 1419, 1715, 2048
 };
 
@@ -188,7 +188,7 @@ do this in .16 fixed point with integers, instead of floats.
 The reciprocal_tab is computed as:
 reciprocal_tab[s] <- ((1<<16) + scalefactor_tab[s] - 1) / scalefactor_tab[s] */
 
-static int qoa_reciprocal_tab[16] = {
+static const int qoa_reciprocal_tab[16] = {
 	65536, 9363, 3121, 1457, 781, 475, 311, 216, 156, 117, 90, 71, 57, 47, 39, 32
 };
 
@@ -202,7 +202,7 @@ of the quant_tab indices and is computed as:
 float dqt[8] = {0.75, -0.75, 2.5, -2.5, 4.5, -4.5, 7, -7};
 dequant_tab[s][q] <- round(scalefactor_tab[s] * dqt[q]) */
 
-static int qoa_dequant_tab[16][8] = {
+static const int qoa_dequant_tab[16][8] = {
 	{   1,    -1,    3,    -3,    5,    -5,     7,     -7},
 	{   5,    -5,   18,   -18,   32,   -32,    49,    -49},
 	{  16,   -16,   53,   -53,   95,   -95,   147,   -147},
