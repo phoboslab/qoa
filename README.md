@@ -35,3 +35,4 @@ your ears. I had more than a few close calls.
 [Swift](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.swift)
 and [TypeScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.ts)
 - [qoa-format](https://github.com/mattdesl/qoa-format) - JavaScript encoder/decoder
+- [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
