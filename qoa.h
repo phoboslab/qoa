@@ -275,7 +275,7 @@ static inline int qoa_clamp(int v, int min, int max) {
 	return v;
 }
 
-static inline int qoa_clamp_i16(int v) {
+static inline int qoa_clamp_s16(int v) {
 	if ((unsigned int)(v + 32768) > 65535) {
 		if (v < -32768) { return -32768; }
 		if (v >  32767) { return  32767; }
@@ -377,7 +377,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					int clamped = qoa_clamp(scaled, -8, 8);
 					int quantized = qoa_quant_tab[clamped + 8];
 					int dequantized = qoa_dequant_tab[scalefactor][quantized];
-					int reconstructed = qoa_clamp_i16(predicted + dequantized);
+					int reconstructed = qoa_clamp_s16(predicted + dequantized);
 
 					long long error = (sample - reconstructed);
 					current_error += error * error;
@@ -563,7 +563,7 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 				int predicted = qoa_lms_predict(&qoa->lms[c]);
 				int quantized = (slice >> 57) & 0x7;
 				int dequantized = qoa_dequant_tab[scalefactor][quantized];
-				int reconstructed = qoa_clamp_i16(predicted + dequantized);
+				int reconstructed = qoa_clamp_s16(predicted + dequantized);
 				
 				sample_data[si] = reconstructed;
 				slice <<= 3;
