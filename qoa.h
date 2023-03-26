@@ -169,7 +169,7 @@ static const int qoa_quant_tab[17] = {
 less accurate at the higher end. In theory, the highest scalefactor that we
 would need to encode the highest 16bit residual is (2**16)/8 = 8192. However we
 rely on the LMS filter to predict samples accurately enough that a maximum 
-residual of one quarter of the 16 bit range is high sufficient. I.e. with the 
+residual of one quarter of the 16 bit range is sufficient. I.e. with the 
 scalefactor 2048 times the quant range of 8 we can encode residuals up to 2**14.
 
 The scalefactor values are computed as:
