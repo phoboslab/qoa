@@ -14,9 +14,9 @@ Audio samples in WAV & QOA format can be found at: https://qoaformat.org/samples
 
 ⚠️ This implementation has not yet been fuzzed. Don't use it with untrusted input.
 
-⚠️ The format is likely to change in the coming weeks. Once it is finalized, 
+⚠️ The format is likely to change in the coming weeks. Once it is finalized,
 a detailed specification will be published. Note that files encoded with a current
-development versions will likely not work (or produce horrible sounds) when 
+development versions will likely not work (or produce horrible sounds) when
 decoded in a slightly older or newer version.
 
 ⚠️ If you are experimenting with QOA, please be _very_ careful, especially when
@@ -37,4 +37,4 @@ and [TypeScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.ts)
 - [qoa-format](https://github.com/mattdesl/qoa-format) - JavaScript encoder/decoder
 - [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
 - [JohannesFriedrich/qoa4R](https://github.com/JohannesFriedrich/qoa4R) - R
-
+- [rafaelcaricio/qoaudio](https://github.com/rafaelcaricio/qoaudio) - Pure Rust zero-dependency decoder implementation
