@@ -38,3 +38,4 @@ and [TypeScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.ts)
 - [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
 - [JohannesFriedrich/qoa4R](https://github.com/JohannesFriedrich/qoa4R) - R
 - [rafaelcaricio/qoaudio](https://github.com/rafaelcaricio/qoaudio) - Pure Rust zero-dependency decoder implementation
+- [AuburnSounds/audio-formats](https://github.com/AuburnSounds/audio-formats) - D library, supports QOA
