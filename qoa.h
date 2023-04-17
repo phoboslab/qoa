@@ -61,7 +61,7 @@ residuals `qrNN`:
 |  sf_quant  |  qr00  |  qr01  |  qr02  |  qr03   |  qr04   | /  /  |  qr19   |
 `-------------------------------------------------------------\  \------------`
 
-Each frame excpet the last must contain exactly 256 slices per channel. The last
+Each frame except the last must contain exactly 256 slices per channel. The last
 frame may contain between 1 .. 256 (inclusive) slices per channel. The last
 slice (for each channel) in the last frame may contain less than 20 samples; the
 slice still must be 8 bytes wide, with the unused samples zeroed out.
