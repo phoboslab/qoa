@@ -8,71 +8,96 @@ QOA - The "Quite OK Audio" format for fast, lossy audio compression
 
 -- Data Format
 
-A QOA file has an 8 byte file header, followed by a number of frames. Each frame 
-consists of an 8 byte frame header, the current 16 byte en-/decoder state per
-channel and 256 slices per channel. Each slice is 8 bytes wide and encodes 20 
-samples of audio data.
+QOA encodes pulse-code modulated (PCM) audio data with up to 255 channels, 
+sample rates from 1 up to 16777215 hertz and a bit depth of 16 bits.
 
-Note that the last frame of a file may contain less than 256 slices per channel.
-The last slice (per channel) in the last frame may contain less 20 samples, but
-the slice will still be 8 bytes wide, with the unused samples zeroed out.
+The compression method employed in QOA is lossy; it discards some information
+from the uncompressed PCM data. For many types of audio signals this compression
+is "transparent", i.e. the difference from the original file is often not
+audible.
 
-The samplerate and number of channels is only stated in the frame headers, but
-not in the file header. A decoder may peek into the first frame of the file to 
-find these values.
+QOA encodes 20 samples of 16 bit PCM data into slices of 64 bits. A single
+sample therefore requires 3.2 bits of storage space, resulting in a 5x
+compression (16 / 3.2).
 
-In a valid QOA file all frames have the same number of channels and the same
-samplerate. These restrictions may be relaxed for streaming. This remains to 
-be decided.
+A QOA file consists of an 8 byte file header, followed by a number of frames.
+Each frame contains an 8 byte frame header, the current 16 byte en-/decoder
+state per channel and 256 slices per channel. Each slice is 8 bytes wide and
+encodes 20 samples of audio data.
 
-All values in a QOA file are BIG ENDIAN. Luckily, EVERYTHING in a QOA file,
-including the headers, is 64 bit aligned, so it's possible to read files with 
-just a read_u64() that does the byte swapping if necessary.
-
-In pseudocode, the file layout is as follows:
+All values, including the slices, are big endian. The file layout is as follows:
 
 struct {
 	struct {
-		char     magic[4];         // magic bytes 'qoaf'
-		uint32_t samples;          // number of samples per channel in this file
-	} file_header;                 // = 64 bits
+		char     magic[4];         // magic bytes "qoaf"
+		uint32_t samples;          // samples per channel in this file
+	} file_header;             
 
 	struct {
 		struct {
-			uint8_t  num_channels; // number of channels
+			uint8_t  num_channels; // no. of channels
 			uint24_t samplerate;   // samplerate in hz
-			uint16_t fsamples;     // sample count per channel in this frame
-			uint16_t fsize;        // frame size (including the frame header)
-		} frame_header;            // = 64 bits
+			uint16_t fsamples;     // samples per channel in this frame
+			uint16_t fsize;        // frame size (includes this header)
+		} frame_header;          
 
 		struct {
-			int16_t history[4];    // = 64 bits
-			int16_t weights[4];    // = 64 bits
+			int16_t history[4];    // most recent last
+			int16_t weights[4];    // most recent last
 		} lms_state[num_channels]; 
 
-		qoa_slice_t slices[256][num_channels]; // = 64 bits each
-	} frames[samples * channels / qoa_max_framesize()];
-} qoa_file;
+		qoa_slice_t slices[256][num_channels];
 
-Wheras the 64bit qoa_slice_t is defined as follows:
+	} frames[ceil(samples / (256 * 20))];
+} qoa_file_t;
+
+Each `qoa_slice_t` contains a quantized scalefactor `sf_quant` and 20 quantized
+residuals `qrNN`:
 
 .- QOA_SLICE -- 64 bits, 20 samples --------------------------/  /------------.
 |        Byte[0]         |        Byte[1]         |  Byte[2]  \  \  Byte[7]   |
 | 7  6  5  4  3  2  1  0 | 7  6  5  4  3  2  1  0 | 7  6  5   /  /    2  1  0 |
 |------------+--------+--------+--------+---------+---------+-\  \--+---------|
-|  sf_index  |  r00   |   r01  |   r02  |  r03    |   r04   | /  /  |   r19   |
+|  sf_quant  |  qr00  |  qr01  |  qr02  |  qr03   |  qr04   | /  /  |  qr19   |
 `-------------------------------------------------------------\  \------------`
 
-`sf_index` defines the scalefactor to use for this slice as an index into the
-qoa_scalefactor_tab[16]
+Each frame excpet the last must contain exactly 256 slices per channel. The last
+frame may contain between 1 .. 256 (inclusive) slices per channel. The last
+slice (for each channel) in the last frame may contain less than 20 samples; the
+slice still must be 8 bytes wide, with the unused samples zeroed out.
 
-`r00`--`r19` are the residuals for the individual samples, divided by the
-scalefactor and quantized by the qoa_quant_tab[].
+Channels are interleaved per slice. E.g. for 2 channel stereo: 
+slice[0] = L, slice[1] = R, slice[2] = L, slice[3] = R ...
 
-In the decoder, a prediction of the next sample is computed by multiplying the 
-state (the last four output samples) with the predictor. The residual from the 
-slice is then dequantized using the qoa_dequant_tab[] and added to the 
-prediction. The result is clamped to int16 to form the final output sample.
+A valid QOA file or stream must have at least one frame. Each frame must contain
+at least one channel and one sample with a samplerate between 1 .. 16777215
+(inclusive).
+
+If the total number of samples is not known by the encoder, the samples in the
+file header may be set to 0x00000000 to indicate that the encoder is 
+"streaming". In a streaming context, the samplerate and number of channels may
+differ from frame to frame. For static files (those with samples set to a
+non-zero value), each frame must have the same number of channels and same
+samplerate.
+
+Note that this implementation of QOA only handles files with a known total
+number of samples.
+
+A decoder should support at least 8 channels. The channel layout for channel
+counts 1 .. 8 is:
+
+	1. Mono
+	2. L, R
+	3. L, R, C 
+	4. FL, FR, B/SL, B/SR 
+	5. FL, FR, C, B/SL, B/SR 
+	6. FL, FR, C, LFE, B/SL, B/SR
+	7. FL, FR, C, LFE, B, SL, SR 
+	8. FL, FR, C, LFE, BL, BR, SL, SR
+
+QOA predicts each audio sample based on the previously decoded ones using a
+"Sign-Sign Least Mean Squares Filter" (LMS). This prediction plus the 
+dequantized residual forms the final output sample.
 
 */
 
@@ -200,7 +225,11 @@ Since qoa_div rounds away from the zero, the smallest entries are mapped to 3/4
 instead of 1. The dequant_tab assumes the following dequantized values for each 
 of the quant_tab indices and is computed as:
 float dqt[8] = {0.75, -0.75, 2.5, -2.5, 4.5, -4.5, 7, -7};
-dequant_tab[s][q] <- round(scalefactor_tab[s] * dqt[q]) */
+dequant_tab[s][q] <- round_ties_away_from_zero(scalefactor_tab[s] * dqt[q])
+
+The rounding employed here is "to nearest, ties away from zero",  i.e. positive
+and negative values are treated symmetrically.
+*/
 
 static const int qoa_dequant_tab[16][8] = {
 	{   1,    -1,    3,    -3,    5,    -5,     7,     -7},
@@ -274,6 +303,10 @@ static inline int qoa_clamp(int v, int min, int max) {
 	if (v > max) { return max; }
 	return v;
 }
+
+/* This specialized clamp function for the signed 16 bit range improves decode
+performance quite a bit. The extra if() statement works nicely with the CPUs
+branch prediction as this branch is rarely taken. */
 
 static inline int qoa_clamp_s16(int v) {
 	if ((unsigned int)(v + 32768) > 65535) {
