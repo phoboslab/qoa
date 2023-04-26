@@ -1,4 +1,4 @@
-![QOA Logo](https://qoaformat.org/qoa-logo.svg)
+![QOA Logo](https://qoaformat.org/qoa-logo-new.svg)
 
 # QOA - The “Quite OK Audio Format” for fast, lossy audio compression
 
