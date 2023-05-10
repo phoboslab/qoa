@@ -399,7 +399,6 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 				neighboring slices. As an optimization, start testing
 				the best scalefactor of the previous slice first. */
 				int scalefactor = (_scalefactor + best_scalefactor[c]) % 16;
-				scalefactor = _scalefactor;
 
 				/* We have to reset the LMS state to the last known good one
 				before trying each scalefactor, as each pass updates the LMS
