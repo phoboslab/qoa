@@ -380,6 +380,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	E.g. for stereo: (ch-0, slice 0), (ch 1, slice 0), (ch 0, slice 1), ...*/
 	for (int sample_index = 0; sample_index < frame_len; sample_index += QOA_SLICE_LEN) {
 
+		static int best_scalefactor[QOA_MAX_CHANNELS] = {0};
 		for (int c = 0; c < channels; c++) {
 			int slice_len = qoa_clamp(QOA_SLICE_LEN, 0, frame_len - sample_index);
 			int slice_start = sample_index * channels + c;
@@ -391,8 +392,14 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 			qoa_uint64_t best_error = -1;
 			qoa_uint64_t best_slice;
 			qoa_lms_t best_lms;
+			int cur_best_scalefactor = 0;
 
-			for (int scalefactor = 0; scalefactor < 16; scalefactor++) {
+			for (int _scalefactor = 0; _scalefactor < 16; _scalefactor++) {
+				/* There is a strong correlation between the scalefactors of
+				neighboring slices. As an optimization, start testing
+				the best scalefactor of the previous slice first. */
+				int scalefactor = (_scalefactor + best_scalefactor[c]) % 16;
+				scalefactor = _scalefactor;
 
 				/* We have to reset the LMS state to the last known good one
 				before trying each scalefactor, as each pass updates the LMS
@@ -426,8 +433,11 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					best_error = current_error;
 					best_slice = slice;
 					best_lms = lms;
+					cur_best_scalefactor = scalefactor;
 				}
 			}
+
+			best_scalefactor[c] = cur_best_scalefactor;
 
 			qoa->lms[c] = best_lms;
 			#ifdef QOA_RECORD_TOTAL_ERROR
