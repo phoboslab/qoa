@@ -418,7 +418,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 	/* Write the current LMS state */
 	for (int c = 0; c < channels; c++) {
-		qoa_compute_weights(sample_data, frame_len, channels, qoa->lms[c].weights);
+		qoa_compute_weights(sample_data + c, frame_len, channels, qoa->lms[c].weights);
 
 		qoa_uint64_t weights = 0;
 		qoa_uint64_t history = 0;
