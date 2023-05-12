@@ -349,6 +349,57 @@ unsigned int qoa_encode_header(qoa_desc *qoa, unsigned char *bytes) {
 	return p;
 }
 
+void qoa_compute_weights(const short *sample_data, int len, int channels, int weights[QOA_LMS_LEN]) {
+	double r[QOA_LMS_LEN+1] = {0};
+	double pc[QOA_LMS_LEN+1] = {0};
+
+	for (int i = 0; i <= QOA_LMS_LEN; i++) {
+		double sum = 0;
+		for (int k = 0; k < len-i; k++) {
+			sum += sample_data[k * channels] * sample_data[(k + i) * channels];
+		}
+		r[i] = sum;
+	}
+
+	for (int i = 0; i < QOA_LMS_LEN; i++) {
+		weights[i] = 0;
+	}
+ 
+	// check power in signal
+	if (r[0] == 0) {
+		return;
+	}
+ 
+	// compute predictor coefficients
+	double pe = r[0]; // initialise error to total power
+	pc[0] = 1.0;      // first coefficient (b[0]) must = 1
+ 
+	// for each coefficient in turn
+	for (int k = 1; k <= QOA_LMS_LEN && pe > 0; k++) {
+		// find next coeff from pc[] and r[]
+		double sum = 0;
+		for (int i = 1; i <= k; i++) {
+			sum -= pc[k-i] * r[i];
+		}
+		pc[k] = sum / pe;
+
+		// perform recursion on pc[]
+		for (int i = 1; i <= k/2; i++) {
+			double pci = pc[i] + pc[k] * pc[k-i];
+			double pcki = pc[k-i] + pc[k] * pc[i];
+			pc[i] = pci;
+			pc[k-i] = pcki;
+		}
+
+		// calculate residual error
+		pe = pe * (1.0 - pc[k] * pc[k]);
+	}
+
+	for (int i = 0; i < QOA_LMS_LEN; i++) {
+		weights[QOA_LMS_LEN - 1 - i] = -pc[i+1] * 8192.0;
+	}
+}
+
 unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned int frame_len, unsigned char *bytes) {
 	unsigned int channels = qoa->channels;
 
@@ -367,6 +418,8 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 	/* Write the current LMS state */
 	for (int c = 0; c < channels; c++) {
+		qoa_compute_weights(sample_data, frame_len, channels, qoa->lms[c].weights);
+
 		qoa_uint64_t weights = 0;
 		qoa_uint64_t history = 0;
 		for (int i = 0; i < QOA_LMS_LEN; i++) {
