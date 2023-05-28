@@ -316,27 +316,33 @@ static inline int qoa_clamp_s16(int v) {
 	return v;
 }
 
+static inline qoa_uint64_t qoa_bswap64(qoa_uint64_t v) {
+#if defined(__GNUC__) || defined(__clang__)
+	return __builtin_bswap64(v);
+#elif defined(_MSC_VER)
+	return _byteswap_uint64(v);
+#else
+	return	(v >> 56) & 0xff |
+			(v >> 48) & 0xff |
+			(v >> 40) & 0xff |
+			(v >> 32) & 0xff |
+			(v >> 24) & 0xff |
+			(v >> 16) & 0xff |
+			(v >>  8) & 0xff |
+			(v >>  0) & 0xff ;
+#endif
+}
+
 static inline qoa_uint64_t qoa_read_u64(const unsigned char *bytes, unsigned int *p) {
 	bytes += *p;
 	*p += 8;
-	return 
-		((qoa_uint64_t)(bytes[0]) << 56) | ((qoa_uint64_t)(bytes[1]) << 48) |
-		((qoa_uint64_t)(bytes[2]) << 40) | ((qoa_uint64_t)(bytes[3]) << 32) |
-		((qoa_uint64_t)(bytes[4]) << 24) | ((qoa_uint64_t)(bytes[5]) << 16) |
-		((qoa_uint64_t)(bytes[6]) <<  8) | ((qoa_uint64_t)(bytes[7]) <<  0);
+	return qoa_bswap64(*(qoa_uint64_t*)bytes);
 }
 
 static inline void qoa_write_u64(qoa_uint64_t v, unsigned char *bytes, unsigned int *p) {
 	bytes += *p;
 	*p += 8;
-	bytes[0] = (v >> 56) & 0xff;
-	bytes[1] = (v >> 48) & 0xff;
-	bytes[2] = (v >> 40) & 0xff;
-	bytes[3] = (v >> 32) & 0xff;
-	bytes[4] = (v >> 24) & 0xff;
-	bytes[5] = (v >> 16) & 0xff;
-	bytes[6] = (v >>  8) & 0xff;
-	bytes[7] = (v >>  0) & 0xff;
+	*(qoa_uint64_t*)bytes = qoa_bswap64(v);
 }
 
 
