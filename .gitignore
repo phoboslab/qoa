@@ -1,6 +1,7 @@
+build/
 tests/
-dr_flac.h
-sokol_audio.h
-dr_mp3.h
+dr_libs/
+sokol/
 qoaconv
 qoaplay
+/*.qoa

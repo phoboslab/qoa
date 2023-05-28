@@ -18,6 +18,13 @@ Audio samples in WAV & QOA format can be found at: https://qoaformat.org/samples
 wearing headphones. You may unexpectedly produce garbage output that can damage
 your ears. I had more than a few close calls.
 
+## Building
+
+Use `cmake -S . -B build` in the source directory containing qoaconv.c, qoaplay.c
+This creates an isolated build folder called `build` to prevent clutter in the source tree.
+To enable FLAC/MP3 support, add `-DINCLUDE_FLAC` / `-DINCLUDE_MP3` respectively to the
+beginning of the aforementioned command. Then, run `cmake --build build` for the binaries.
+
 ## Alternative Implementations of QOA
 
 - [pfusik/qoa-ci](https://github.com/pfusik/qoa-ci) - Ć, transpiling to
