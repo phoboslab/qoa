@@ -20,15 +20,15 @@ your ears. I had more than a few close calls.
 
 ## Alternative Implementations of QOA
 
-- [pfusik/qoa-ci](https://github.com/pfusik/qoa-ci) - Ć, transpiling to
-[C](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.c),
-[C++](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.cpp),
-[C#](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.cs),
-[Java](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOADecoder.java),
-[JavaScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.js),
-[Python](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.py),
-[Swift](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.swift)
-and [TypeScript](https://github.com/pfusik/qoa-ci/blob/master/transpiled/QOA.ts)
+- [pfusik/qoa-fu](https://github.com/pfusik/qoa-fu) - Fusion, transpiling to
+[C](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.c),
+[C++](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.cpp),
+[C#](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.cs),
+[Java](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOADecoder.java),
+[JavaScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.js),
+[Python](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.py),
+[Swift](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.swift)
+and [TypeScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.ts)
 - [qoa-format](https://github.com/mattdesl/qoa-format) - JavaScript encoder/decoder
 - [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
 - [JohannesFriedrich/qoa4R](https://github.com/JohannesFriedrich/qoa4R) - R
