@@ -34,3 +34,4 @@ and [TypeScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.ts)
 - [JohannesFriedrich/qoa4R](https://github.com/JohannesFriedrich/qoa4R) - R
 - [rafaelcaricio/qoaudio](https://github.com/rafaelcaricio/qoaudio) - Pure Rust zero-dependency decoder implementation
 - [AuburnSounds/audio-formats](https://github.com/AuburnSounds/audio-formats) - D library, supports QOA
+- [braheezy/goqoa](https://github.com/braheezy/goqoa) - Go library and CLI tool
