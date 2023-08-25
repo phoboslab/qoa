@@ -24,6 +24,7 @@ your ears. I had more than a few close calls.
 [C](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.c),
 [C++](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.cpp),
 [C#](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.cs),
+[D](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.d),
 [Java](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOADecoder.java),
 [JavaScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.js),
 [Python](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.py),
