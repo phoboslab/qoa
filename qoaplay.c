@@ -129,7 +129,7 @@ unsigned int qoaplay_decode(qoaplay_desc *qp, float *sample_data, int num_sample
 		}
 
 		/* Normalize to -1..1 floats and write to dest */
-		for (int c = 0; c < qp->info.channels; c++) {
+		for (unsigned c = 0; c < qp->info.channels; c++) {
 			sample_data[dst_index++] = qp->sample_data[src_index++] / 32768.0;
 		}
 		qp->sample_data_pos++;
@@ -150,10 +150,7 @@ int qoaplay_get_frame(qoaplay_desc *qp) {
 	return qp->sample_pos / QOA_FRAME_LEN;
 }
 
-void qoaplay_seek_frame(qoaplay_desc *qp, int frame) {
-	if (frame < 0) {
-		frame = 0;
-	}
+void qoaplay_seek_frame(qoaplay_desc *qp, unsigned frame) {
 	if (frame > qp->info.samples / QOA_FRAME_LEN) {
 		frame = qp->info.samples / QOA_FRAME_LEN;
 	}
@@ -200,7 +197,7 @@ hand over to the platform's audio API. All file IO and decoding is done here. */
 
 static void sokol_audio_cb(float* sample_data, int num_samples, int num_channels, void *user_data) {
 	qoaplay_desc *qoaplay = (qoaplay_desc *)user_data;
-	if (num_channels != qoaplay->info.channels) {
+	if ((unsigned)num_channels != qoaplay->info.channels) {
 		printf("Audio cb channels %d not equal qoa channels %d\n", num_channels, qoaplay->info.channels);
 		exit(1);
 	}
