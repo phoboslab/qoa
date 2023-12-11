@@ -141,13 +141,19 @@ short *qoaconv_wav_read(const char *path, qoa_desc *desc) {
 		unsigned int chunk_size = qoaconv_fread_u32_le(fh);
 
 		if (chunk_type == QOACONV_CHUNK_ID("fmt ")) {
-			QOACONV_ASSERT(chunk_size == 16, "WAV fmt chunk size missmatch");
+			QOACONV_ASSERT(chunk_size == 16 || chunk_size == 18, "WAV fmt chunk size missmatch");
+
 			format_type = qoaconv_fread_u16_le(fh);
 			channels = qoaconv_fread_u16_le(fh);
 			samplerate = qoaconv_fread_u32_le(fh);
 			byte_rate = qoaconv_fread_u32_le(fh);
 			block_align = qoaconv_fread_u16_le(fh);
 			bits_per_sample = qoaconv_fread_u16_le(fh);
+
+			if (chunk_size == 18) {
+				unsigned short extra_params = qoaconv_fread_u16_le(fh);
+				QOACONV_ASSERT(extra_params == 0, "WAV fmt extra params not supported");
+			}
 		}
 		else if (chunk_type == QOACONV_CHUNK_ID("data")) {
 			data_size = chunk_size;
