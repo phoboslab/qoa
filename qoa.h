@@ -429,15 +429,15 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 						lms.weights[1] * lms.weights[1] + 
 						lms.weights[2] * lms.weights[2] + 
 						lms.weights[3] * lms.weights[3]
-					) >> 6) - 0x8fffff;
+					) >> 18) - 0x8ff;
 					if (weights_penalty < 0) {
 						weights_penalty = 0;
 					}
-					
+
 					long long error = (sample - reconstructed);
 					qoa_uint64_t error_sq = error * error;
 
-					current_rank += error_sq + weights_penalty;
+					current_rank += error_sq + weights_penalty * weights_penalty;
 					current_error += error_sq;
 					if (current_rank > best_rank) {
 						break;
