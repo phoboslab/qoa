@@ -367,21 +367,6 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 	
 	for (int c = 0; c < channels; c++) {
-		/* If the weights have grown too large, reset them to 0. This may happen
-		with certain high-frequency sounds. This is a last resort and will 
-		introduce quite a bit of noise, but should at least prevent pops/clicks */
-		int weights_sum = 
-			qoa->lms[c].weights[0] * qoa->lms[c].weights[0] + 
-			qoa->lms[c].weights[1] * qoa->lms[c].weights[1] + 
-			qoa->lms[c].weights[2] * qoa->lms[c].weights[2] + 
-			qoa->lms[c].weights[3] * qoa->lms[c].weights[3];
-		if (weights_sum > 0x2fffffff) {
-			qoa->lms[c].weights[0] = 0;
-			qoa->lms[c].weights[1] = 0;
-			qoa->lms[c].weights[2] = 0;
-			qoa->lms[c].weights[3] = 0;
-		}
-
 		/* Write the current LMS state */
 		qoa_uint64_t weights = 0;
 		qoa_uint64_t history = 0;
@@ -405,6 +390,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 			/* Brute for search for the best scalefactor. Just go through all
 			16 scalefactors, encode all samples for the current slice and 
 			meassure the total squared error. */
+			qoa_uint64_t best_rank = -1;
 			qoa_uint64_t best_error = -1;
 			qoa_uint64_t best_slice;
 			qoa_lms_t best_lms;
@@ -421,6 +407,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 				state when encoding. */
 				qoa_lms_t lms = qoa->lms[c];
 				qoa_uint64_t slice = scalefactor;
+				qoa_uint64_t current_rank = 0;
 				qoa_uint64_t current_error = 0;
 
 				for (int si = slice_start; si < slice_end; si += channels) {
@@ -434,9 +421,25 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					int dequantized = qoa_dequant_tab[scalefactor][quantized];
 					int reconstructed = qoa_clamp_s16(predicted + dequantized);
 
+
+					/* If the weights have grown too large, we introduce a penalty
+					here. This prevents pops/clicks in certain problem cases */
+					int weights_penalty = ((
+						lms.weights[0] * lms.weights[0] + 
+						lms.weights[1] * lms.weights[1] + 
+						lms.weights[2] * lms.weights[2] + 
+						lms.weights[3] * lms.weights[3]
+					) >> 6) - 0x8fffff;
+					if (weights_penalty < 0) {
+						weights_penalty = 0;
+					}
+					
 					long long error = (sample - reconstructed);
-					current_error += error * error;
-					if (current_error > best_error) {
+					qoa_uint64_t error_sq = error * error;
+
+					current_rank += error_sq + weights_penalty;
+					current_error += error_sq;
+					if (current_rank > best_rank) {
 						break;
 					}
 
@@ -444,7 +447,8 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					slice = (slice << 3) | quantized;
 				}
 
-				if (current_error < best_error) {
+				if (current_rank < best_rank) {
+					best_rank = current_rank;
 					best_error = current_error;
 					best_slice = slice;
 					best_lms = lms;
