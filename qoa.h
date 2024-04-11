@@ -116,7 +116,7 @@ extern "C" {
 #define QOA_MIN_FILESIZE 16
 #define QOA_MAX_CHANNELS 8
 
-#define QOA_SLICE_LEN 20
+#define QOA_SLICE_LEN 60
 #define QOA_SLICES_PER_FRAME 256
 #define QOA_FRAME_LEN (QOA_SLICES_PER_FRAME * QOA_SLICE_LEN)
 #define QOA_LMS_LEN 4
@@ -177,16 +177,14 @@ void *qoa_read(const char *filename, qoa_desc *qoa);
 typedef unsigned long long qoa_uint64_t;
 
 
-/* The quant_tab provides an index into the dequant_tab for residuals in the
-range of -8 .. 8. It maps this range to just 3bits and becomes less accurate at 
-the higher end. Note that the residual zero is identical to the lowest positive 
-value. This is mostly fine, since the qoa_div() function always rounds away 
-from zero. */
+/* The quant_tab maps the range -1 -- 1 to 1 bit. Note that the residual zero is
+identical to 1. This is mostly fine, since the qoa_div() function always rounds
+away from zero. */
 
-static const int qoa_quant_tab[17] = {
-	7, 7, 7, 5, 5, 3, 3, 1, /* -8..-1 */
-	0,                      /*  0     */
-	0, 2, 2, 4, 4, 6, 6, 6  /*  1.. 8 */
+static const int qoa_quant_tab[3] = {
+	1, /* -1 */
+	0, /*  0 */
+	0  /*  1 */
 };
 
 
@@ -221,10 +219,9 @@ static const int qoa_reciprocal_tab[16] = {
 /* The dequant_tab maps each of the scalefactors and quantized residuals to 
 their unscaled & dequantized version.
 
-Since qoa_div rounds away from the zero, the smallest entries are mapped to 3/4
-instead of 1. The dequant_tab assumes the following dequantized values for each 
+The dequant_tab assumes the following dequantized values for each 
 of the quant_tab indices and is computed as:
-float dqt[8] = {0.75, -0.75, 2.5, -2.5, 4.5, -4.5, 7, -7};
+float dqt[8] = {8, -8};
 dequant_tab[s][q] <- round_ties_away_from_zero(scalefactor_tab[s] * dqt[q])
 
 The rounding employed here is "to nearest, ties away from zero",  i.e. positive
@@ -232,22 +229,22 @@ and negative values are treated symmetrically.
 */
 
 static const int qoa_dequant_tab[16][8] = {
-	{   1,    -1,    3,    -3,    5,    -5,     7,     -7},
-	{   5,    -5,   18,   -18,   32,   -32,    49,    -49},
-	{  16,   -16,   53,   -53,   95,   -95,   147,   -147},
-	{  34,   -34,  113,  -113,  203,  -203,   315,   -315},
-	{  63,   -63,  210,  -210,  378,  -378,   588,   -588},
-	{ 104,  -104,  345,  -345,  621,  -621,   966,   -966},
-	{ 158,  -158,  528,  -528,  950,  -950,  1477,  -1477},
-	{ 228,  -228,  760,  -760, 1368, -1368,  2128,  -2128},
-	{ 316,  -316, 1053, -1053, 1895, -1895,  2947,  -2947},
-	{ 422,  -422, 1405, -1405, 2529, -2529,  3934,  -3934},
-	{ 548,  -548, 1828, -1828, 3290, -3290,  5117,  -5117},
-	{ 696,  -696, 2320, -2320, 4176, -4176,  6496,  -6496},
-	{ 868,  -868, 2893, -2893, 5207, -5207,  8099,  -8099},
-	{1064, -1064, 3548, -3548, 6386, -6386,  9933,  -9933},
-	{1286, -1286, 4288, -4288, 7718, -7718, 12005, -12005},
-	{1536, -1536, 5120, -5120, 9216, -9216, 14336, -14336},
+	{    8,     -8},
+	{   56,    -56},
+	{  168,   -168},
+	{  360,   -360},
+	{  672,   -672},
+	{ 1104,  -1104},
+	{ 1688,  -1688},
+	{ 2432,  -2432},
+	{ 3368,  -3368},
+	{ 4496,  -4496},
+	{ 5848,  -5848},
+	{ 7424,  -7424},
+	{ 9256,  -9256},
+	{11352, -11352},
+	{13720, -13720},
+	{16384, -16384}
 };
 
 
@@ -269,11 +266,11 @@ static int qoa_lms_predict(qoa_lms_t *lms) {
 	for (int i = 0; i < QOA_LMS_LEN; i++) {
 		prediction += lms->weights[i] * lms->history[i];
 	}
-	return prediction >> 13;
+	return prediction >> 14;
 }
 
 static void qoa_lms_update(qoa_lms_t *lms, int sample, int residual) {
-	int delta = residual >> 4;
+	int delta = residual >> 6;
 	for (int i = 0; i < QOA_LMS_LEN; i++) {
 		lms->weights[i] += lms->history[i] < 0 ? -delta : delta;
 	}
@@ -416,8 +413,8 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 					int residual = sample - predicted;
 					int scaled = qoa_div(residual, scalefactor);
-					int clamped = qoa_clamp(scaled, -8, 8);
-					int quantized = qoa_quant_tab[clamped + 8];
+					int clamped = qoa_clamp(scaled, -1, 1);
+					int quantized = qoa_quant_tab[clamped + 1];
 					int dequantized = qoa_dequant_tab[scalefactor][quantized];
 					int reconstructed = qoa_clamp_s16(predicted + dequantized);
 
@@ -437,14 +434,14 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					long long error = (sample - reconstructed);
 					qoa_uint64_t error_sq = error * error;
 
-					current_rank += error_sq + weights_penalty * weights_penalty;
+					current_rank += error_sq;// + weights_penalty * weights_penalty;
 					current_error += error_sq;
 					if (current_rank > best_rank) {
 						break;
 					}
 
 					qoa_lms_update(&lms, reconstructed, dequantized);
-					slice = (slice << 3) | quantized;
+					slice = (slice << 1) | quantized;
 				}
 
 				if (current_rank < best_rank) {
@@ -623,12 +620,12 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 
 			for (int si = slice_start; si < slice_end; si += channels) {
 				int predicted = qoa_lms_predict(&qoa->lms[c]);
-				int quantized = (slice >> 57) & 0x7;
+				int quantized = (slice >> 59) & 0x1;
 				int dequantized = qoa_dequant_tab[scalefactor][quantized];
 				int reconstructed = qoa_clamp_s16(predicted + dequantized);
 				
 				sample_data[si] = reconstructed;
-				slice <<= 3;
+				slice <<= 1;
 
 				qoa_lms_update(&qoa->lms[c], reconstructed, dequantized);
 			}
