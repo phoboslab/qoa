@@ -221,30 +221,30 @@ their unscaled & dequantized version.
 
 The dequant_tab assumes the following dequantized values for each 
 of the quant_tab indices and is computed as:
-float dqt[8] = {8, -8};
+float dqt[8] = {2, -2};
 dequant_tab[s][q] <- round_ties_away_from_zero(scalefactor_tab[s] * dqt[q])
 
 The rounding employed here is "to nearest, ties away from zero",  i.e. positive
 and negative values are treated symmetrically.
 */
 
-static const int qoa_dequant_tab[16][8] = {
-	{    8,     -8},
-	{   56,    -56},
-	{  168,   -168},
-	{  360,   -360},
-	{  672,   -672},
-	{ 1104,  -1104},
-	{ 1688,  -1688},
-	{ 2432,  -2432},
-	{ 3368,  -3368},
-	{ 4496,  -4496},
-	{ 5848,  -5848},
-	{ 7424,  -7424},
-	{ 9256,  -9256},
-	{11352, -11352},
-	{13720, -13720},
-	{16384, -16384}
+static const int qoa_dequant_tab[16][2] = {
+	{   2,    -2},
+	{  14,   -14},
+	{  42,   -42},
+	{  90,   -90},
+	{ 168,  -168},
+	{ 276,  -276},
+	{ 422,  -422},
+	{ 608,  -608},
+	{ 842,  -842},
+	{1124, -1124},
+	{1462, -1462},
+	{1856, -1856},
+	{2314, -2314},
+	{2838, -2838},
+	{3430, -3430},
+	{4096, -4096}
 };
 
 
