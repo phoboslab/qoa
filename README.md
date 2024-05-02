@@ -14,9 +14,6 @@ Audio samples in WAV & QOA format can be found at: https://qoaformat.org/samples
 
 ⚠️ This implementation has not yet been fuzzed. Don't use it with untrusted input.
 
-⚠️ If you are experimenting with QOA, please be _very_ careful, especially when
-wearing headphones. You may unexpectedly produce garbage output that can damage
-your ears. I had more than a few close calls.
 
 ## Alternative Implementations of QOA
 
