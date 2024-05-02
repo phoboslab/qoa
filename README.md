@@ -31,9 +31,14 @@ your ears. I had more than a few close calls.
 [Swift](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.swift)
 and [TypeScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.ts)
 - [qoa-format](https://github.com/mattdesl/qoa-format) - JavaScript encoder/decoder
-- [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
 - [JohannesFriedrich/qoa4R](https://github.com/JohannesFriedrich/qoa4R) - R
 - [rafaelcaricio/qoaudio](https://github.com/rafaelcaricio/qoaudio) - Pure Rust zero-dependency decoder implementation
 - [AuburnSounds/audio-formats](https://github.com/AuburnSounds/audio-formats) - D library, supports QOA
 - [braheezy/goqoa](https://github.com/braheezy/goqoa) - Go library and CLI tool
 - [HaxelWorks/qoa-python](https://github.com/HaxelWorks/qoa-python) - Python wrapper using cffi
+
+## QOA Support in Other Software
+
+- [Godot Engine](https://godotengine.org) - supports compressing WAV files into QOA since 4.3
+- [raylib](https://github.com/raysan5/raylib) - supports decoding QOA samples through its [raudio module](https://github.com/raysan5/raylib/blob/master/src/raudio.c)
+- [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
