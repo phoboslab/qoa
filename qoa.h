@@ -455,7 +455,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 				if (current_rank < best_rank) {
 					best_rank = current_rank;
-					#if QOA_RECORD_TOTAL_ERROR
+					#ifdef QOA_RECORD_TOTAL_ERROR
 						best_error = current_error;
 					#endif
 					best_slice = slice;
