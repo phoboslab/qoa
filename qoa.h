@@ -391,7 +391,9 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 			16 scalefactors, encode all samples for the current slice and 
 			meassure the total squared error. */
 			qoa_uint64_t best_rank = -1;
-			qoa_uint64_t best_error = -1;
+			#ifdef QOA_RECORD_TOTAL_ERROR
+				qoa_uint64_t best_error = -1;
+			#endif
 			qoa_uint64_t best_slice;
 			qoa_lms_t best_lms;
 			int best_scalefactor;
@@ -408,7 +410,9 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 				qoa_lms_t lms = qoa->lms[c];
 				qoa_uint64_t slice = scalefactor;
 				qoa_uint64_t current_rank = 0;
-				qoa_uint64_t current_error = 0;
+				#ifdef QOA_RECORD_TOTAL_ERROR
+					qoa_uint64_t current_error = 0;
+				#endif
 
 				for (int si = slice_start; si < slice_end; si += channels) {
 					int sample = sample_data[si];
@@ -438,7 +442,9 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					qoa_uint64_t error_sq = error * error;
 
 					current_rank += error_sq + weights_penalty * weights_penalty;
-					current_error += error_sq;
+					#ifdef QOA_RECORD_TOTAL_ERROR
+						current_error += error_sq;
+					#endif
 					if (current_rank > best_rank) {
 						break;
 					}
@@ -449,7 +455,9 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 
 				if (current_rank < best_rank) {
 					best_rank = current_rank;
-					best_error = current_error;
+					#if QOA_RECORD_TOTAL_ERROR
+						best_error = current_error;
+					#endif
 					best_slice = slice;
 					best_lms = lms;
 					best_scalefactor = scalefactor;
