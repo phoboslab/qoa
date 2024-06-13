@@ -39,3 +39,4 @@ and [TypeScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.ts)
 - [Godot Engine](https://godotengine.org) - supports compressing WAV files into QOA since 4.3
 - [raylib](https://github.com/raysan5/raylib) - supports decoding QOA samples through its [raudio module](https://github.com/raysan5/raylib/blob/master/src/raudio.c)
 - [SerenityOS](https://github.com/SerenityOS/serenity) supports QOA system wide through [QOALoader.h](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibAudio/QOALoader.h)
+- [Qmmp](https://github.com/TTK-qmmp/qmmp-qoa) - supports decoding QOA samples
