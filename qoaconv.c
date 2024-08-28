@@ -256,7 +256,8 @@ int main(int argc, char **argv) {
 		#endif
 	}
 	else if (QOACONV_STR_ENDS_WITH(argv[1], ".qoa")) {
-		sample_data = qoa_read(argv[1], &desc);
+		sample_data = malloc(qoa_decode_size(&desc) * sizeof(short));
+		qoa_read(argv[1], &desc, sample_data);
 	}
 	else {
 		QOACONV_ABORT("Unknown file type for %s", argv[1]);

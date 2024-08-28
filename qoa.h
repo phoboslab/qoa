@@ -142,17 +142,19 @@ typedef struct {
 
 unsigned int qoa_encode_header(qoa_desc *qoa, unsigned char *bytes);
 unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned int frame_len, unsigned char *bytes);
-void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len);
+unsigned int qoa_encode_size(qoa_desc *qoa);
+void qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len, unsigned char *out_buf);
 
 unsigned int qoa_max_frame_size(qoa_desc *qoa);
 unsigned int qoa_decode_header(const unsigned char *bytes, int size, qoa_desc *qoa);
 unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa_desc *qoa, short *sample_data, unsigned int *frame_len);
-short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *file);
+unsigned int qoa_decode_size(qoa_desc *qoa);
+void qoa_decode(const unsigned char *bytes, int size, qoa_desc *file, short *out_buf);
 
 #ifndef QOA_NO_STDIO
 
 int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa);
-void *qoa_read(const char *filename, qoa_desc *qoa);
+void qoa_read(const char *filename, qoa_desc *qoa, short *out_buf);
 
 #endif /* QOA_NO_STDIO */
 
@@ -483,25 +485,25 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	return p;
 }
 
-void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len) {
+unsigned int qoa_encode_size(qoa_desc *qoa) {
 	if (
 		qoa->samples == 0 || 
 		qoa->samplerate == 0 || qoa->samplerate > 0xffffff ||
 		qoa->channels == 0 || qoa->channels > QOA_MAX_CHANNELS
 	) {
-		return NULL;
+		return 0;
 	}
 
 	/* Calculate the encoded size and allocate */
 	unsigned int num_frames = (qoa->samples + QOA_FRAME_LEN-1) / QOA_FRAME_LEN;
 	unsigned int num_slices = (qoa->samples + QOA_SLICE_LEN-1) / QOA_SLICE_LEN;
-	unsigned int encoded_size = 8 +                    /* 8 byte file header */
+	return 8 +                                         /* 8 byte file header */
 		num_frames * 8 +                               /* 8 byte frame headers */
 		num_frames * QOA_LMS_LEN * 4 * qoa->channels + /* 4 * 4 bytes lms state per channel */
 		num_slices * 8 * qoa->channels;                /* 8 byte slices */
+}
 
-	unsigned char *bytes = QOA_MALLOC(encoded_size);
-
+void qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len, unsigned char *out_buf) {
 	for (unsigned int c = 0; c < qoa->channels; c++) {
 		/* Set the initial LMS weights to {0, 0, -1, 2}. This helps with the 
 		prediction of the first few ms of a file. */
@@ -517,9 +519,8 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 		}
 	}
 
-
 	/* Encode the header and go through all frames */
-	unsigned int p = qoa_encode_header(qoa, bytes);
+	unsigned int p = qoa_encode_header(qoa, out_buf);
 	#ifdef QOA_RECORD_TOTAL_ERROR
 		qoa->error = 0;
 	#endif
@@ -528,12 +529,11 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 	for (unsigned int sample_index = 0; sample_index < qoa->samples; sample_index += frame_len) {
 		frame_len = qoa_clamp(QOA_FRAME_LEN, 0, qoa->samples - sample_index);		
 		const short *frame_samples = sample_data + sample_index * qoa->channels;
-		unsigned int frame_size = qoa_encode_frame(frame_samples, qoa, frame_len, bytes + p);
+		unsigned int frame_size = qoa_encode_frame(frame_samples, qoa, frame_len, out_buf + p);
 		p += frame_size;
 	}
 
 	*out_len = p;
-	return bytes;
 }
 
 
@@ -647,15 +647,15 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	return p;
 }
 
-short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
+unsigned int qoa_decode_size(qoa_desc *qoa) {
+	return qoa->channels * qoa->channels;
+}
+
+void qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa, short *out_buf) {
 	unsigned int p = qoa_decode_header(bytes, size, qoa);
 	if (!p) {
-		return NULL;
+		return;
 	}
-
-	/* Calculate the required size of the sample buffer and allocate */
-	int total_samples = qoa->samples * qoa->channels;
-	short *sample_data = QOA_MALLOC(total_samples * sizeof(short));
 
 	unsigned int sample_index = 0;
 	unsigned int frame_len;
@@ -663,7 +663,7 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 
 	/* Decode all frames */
 	do {
-		short *sample_ptr = sample_data + sample_index * qoa->channels;
+		short *sample_ptr = out_buf + sample_index * qoa->channels;
 		frame_size = qoa_decode_frame(bytes + p, size - p, qoa, sample_ptr, &frame_len);
 
 		p += frame_size;
@@ -671,7 +671,6 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 	} while (frame_size && sample_index < qoa->samples);
 
 	qoa->samples = sample_index;
-	return sample_data;
 }
 
 
@@ -683,19 +682,20 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 #include <stdio.h>
 
 int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
+	unsigned int size = qoa_encode_size(qoa);
+
+	if (!size) {
+		return 0;
+	}
+
 	FILE *f = fopen(filename, "wb");
-	unsigned int size;
-	void *encoded;
 
 	if (!f) {
 		return 0;
 	}
 
-	encoded = qoa_encode(sample_data, qoa, &size);
-	if (!encoded) {
-		fclose(f);
-		return 0;
-	}
+	unsigned char *encoded = QOA_MALLOC(size);
+	qoa_encode(sample_data, qoa, &size, encoded);
 
 	fwrite(encoded, 1, size, f);
 	fclose(f);
@@ -704,36 +704,32 @@ int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
 	return size;
 }
 
-void *qoa_read(const char *filename, qoa_desc *qoa) {
+void qoa_read(const char *filename, qoa_desc *qoa, short *out_buf) {
 	FILE *f = fopen(filename, "rb");
-	int size, bytes_read;
-	void *data;
-	short *sample_data;
 
 	if (!f) {
-		return NULL;
+		return;
 	}
 
 	fseek(f, 0, SEEK_END);
-	size = ftell(f);
+	int size = ftell(f);
 	if (size <= 0) {
 		fclose(f);
-		return NULL;
+		return;
 	}
 	fseek(f, 0, SEEK_SET);
 
-	data = QOA_MALLOC(size);
+	void *data = QOA_MALLOC(size);
 	if (!data) {
 		fclose(f);
-		return NULL;
+		return;
 	}
 
-	bytes_read = fread(data, 1, size, f);
+	int bytes_read = fread(data, 1, size, f);
 	fclose(f);
 
-	sample_data = qoa_decode(data, bytes_read, qoa);
+	qoa_decode(data, bytes_read, qoa, out_buf);
 	QOA_FREE(data);
-	return sample_data;
 }
 
 #endif /* QOA_NO_STDIO */
