@@ -19,6 +19,7 @@ Compile with:
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef QOACONV_HAS_DRMP3
 	/* https://github.com/mackron/dr_libs/blob/master/dr_mp3.h */
@@ -238,6 +239,8 @@ int main(int argc, char **argv) {
 
 	/* Decode input */
 
+	clock_t start_decode = clock();
+
 	if (QOACONV_STR_ENDS_WITH(argv[1], ".wav")) {
 		sample_data = qoaconv_wav_read(argv[1], &desc);
 	}
@@ -262,16 +265,21 @@ int main(int argc, char **argv) {
 		QOACONV_ABORT("Unknown file type for %s", argv[1]);
 	}
 
+	clock_t end_decode = clock();
+
 	QOACONV_ASSERT(sample_data, "Can't load/decode %s", argv[1]);
 
 	printf(
-		"%s: channels: %d, samplerate: %d hz, samples per channel: %d, duration: %d sec\n",
-		argv[1], desc.channels, desc.samplerate, desc.samples, desc.samples/desc.samplerate
+		"%s: channels: %d, samplerate: %d hz, samples per channel: %d, duration: %d sec (took %.2f seconds)\n",
+		argv[1], desc.channels, desc.samplerate, desc.samples, desc.samples/desc.samplerate,
+		(double)(end_decode - start_decode) / CLOCKS_PER_SEC
 	);
 
 
 	/* Encode output */
-	
+
+	clock_t start_encode = clock();
+
 	int bytes_written = 0;
 	double psnr = 1.0/0.0;
 	if (QOACONV_STR_ENDS_WITH(argv[2], ".wav")) {
@@ -288,13 +296,16 @@ int main(int argc, char **argv) {
 		QOACONV_ABORT("Unknown file type for %s", argv[2]);
 	}
 
+	clock_t end_encode = clock();
+
 	QOACONV_ASSERT(bytes_written, "Can't write/encode %s", argv[2]);
 	free(sample_data);
 
 	printf(
-		"%s: size: %d kb (%d bytes) = %.2f kbit/s, psnr: %.2f db\n",
+		"%s: size: %d kb (%d bytes) = %.2f kbit/s, psnr: %.2f db (took %.2f seconds)\n",
 		argv[2], bytes_written/1024, bytes_written, 
-		(((float)bytes_written*8)/((float)desc.samples/(float)desc.samplerate))/1024, psnr
+		(((float)bytes_written*8)/((float)desc.samples/(float)desc.samplerate))/1024, psnr,
+		(double)(end_encode - start_encode) / CLOCKS_PER_SEC
 	);
 
 	return 0;
