@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
 	/* Encode output */
 	
 	int bytes_written = 0;
-	double psnr = 1.0/0.0;
+	double psnr = INFINITY;
 	if (QOACONV_STR_ENDS_WITH(argv[2], ".wav")) {
 		bytes_written = qoaconv_wav_write(argv[2], sample_data, &desc);
 	}
