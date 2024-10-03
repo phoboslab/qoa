@@ -288,8 +288,9 @@ int main(int argc, char **argv) {
 	else if (QOACONV_STR_ENDS_WITH(argv[2], ".qoa")) {
 		bytes_written = qoa_write(argv[2], sample_data, &desc);
 		#ifdef QOA_RECORD_TOTAL_ERROR
-			/* Is this the right way to calculate the PSNR? */
-			psnr = -20.0 * log10(sqrt(desc.error/(desc.samples * desc.channels)) / 32768.0);
+			if (desc.error) {
+				psnr = -20.0 * log10(sqrt(desc.error/(desc.samples * desc.channels)) / 32768.0);
+			}
 		#endif
 	}
 	else {
