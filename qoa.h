@@ -387,7 +387,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 			int slice_start = sample_index * channels + c;
 			int slice_end = (sample_index + slice_len) * channels + c;
 
-			/* Brute for search for the best scalefactor. Just go through all
+			/* Brute force search for the best scalefactor. Just go through all
 			16 scalefactors, encode all samples for the current slice and
 			meassure the total squared error. */
 			qoa_uint64_t best_rank = -1;
