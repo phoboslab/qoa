@@ -20,6 +20,7 @@ CFLAGS_PLAY ?= -std=gnu99 -O3
 
 ifeq ($(OS),Windows_NT)
 	LFLAGS_PLAY ?= # defined in #pragma() in sokol_audio.h
+	EXTS        ?= .exe
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Darwin)
@@ -41,4 +42,4 @@ $(TARGET_CONV):$(TARGET_CONV).c qoa.h
 
 .PHONY: clean
 clean:
-	$(RM) $(TARGET_PLAY) $(TARGET_CONV)
+	$(RM) $(TARGET_PLAY)$(EXTS) $(TARGET_CONV)$(EXTS)
