@@ -298,6 +298,10 @@ static inline int qoa_div(int v, int scalefactor) {
 	return n;
 }
 
+static inline unsigned int qoa_min(unsigned int x, unsigned int y) {
+	return (x < y) ? x : y;
+}
+
 static inline int qoa_clamp(int v, int min, int max) {
 	if (v < min) { return min; }
 	if (v > max) { return max; }
@@ -383,7 +387,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	for (unsigned int sample_index = 0; sample_index < frame_len; sample_index += QOA_SLICE_LEN) {
 
 		for (unsigned int c = 0; c < channels; c++) {
-			int slice_len = qoa_clamp(QOA_SLICE_LEN, 0, frame_len - sample_index);
+			int slice_len = qoa_min(QOA_SLICE_LEN, frame_len - sample_index);
 			int slice_start = sample_index * channels + c;
 			int slice_end = (sample_index + slice_len) * channels + c;
 
@@ -526,7 +530,7 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 
 	int frame_len = QOA_FRAME_LEN;
 	for (unsigned int sample_index = 0; sample_index < qoa->samples; sample_index += frame_len) {
-		frame_len = qoa_clamp(QOA_FRAME_LEN, 0, qoa->samples - sample_index);		
+		frame_len = qoa_min(QOA_FRAME_LEN, qoa->samples - sample_index);
 		const short *frame_samples = sample_data + sample_index * qoa->channels;
 		unsigned int frame_size = qoa_encode_frame(frame_samples, qoa, frame_len, bytes + p);
 		p += frame_size;
@@ -629,7 +633,7 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 			slice <<= 4;
 
 			int slice_start = sample_index * channels + c;
-			int slice_end = qoa_clamp(sample_index + QOA_SLICE_LEN, 0, samples) * channels + c;
+			int slice_end = qoa_min(sample_index + QOA_SLICE_LEN, samples) * channels + c;
 
 			for (int si = slice_start; si < slice_end; si += channels) {
 				int predicted = qoa_lms_predict(&qoa->lms[c]);
