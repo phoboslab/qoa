@@ -60,3 +60,5 @@ and [TypeScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.ts)
 - [Qmmp](https://github.com/TTK-qmmp/qmmp-qoa) - supports decoding QOA samples
 - [Visual Studio Code](https://github.com/microsoft/vscode): supports playing QOA files with the [QOA Preview extension](https://github.com/braheezy/vscode-qoa-preview)
 - [OpenCubicPlayer](https://github.com/mywave82/opencubicplayer) - supports playing QOA files
+- [file](https://github.com/file/file): identify QOA files
+  
