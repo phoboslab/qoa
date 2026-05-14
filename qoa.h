@@ -126,8 +126,8 @@ extern "C" {
 	(8 + QOA_LMS_LEN * 4 * channels + 8 * slices * channels)
 
 typedef struct {
-	int history[QOA_LMS_LEN];
-	int weights[QOA_LMS_LEN];
+	signed int history[QOA_LMS_LEN];
+	signed int weights[QOA_LMS_LEN];
 } qoa_lms_t;
 
 typedef struct {
@@ -145,13 +145,13 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len);
 
 unsigned int qoa_max_frame_size(qoa_desc *qoa);
-unsigned int qoa_decode_header(const unsigned char *bytes, int size, qoa_desc *qoa);
+unsigned int qoa_decode_header(const unsigned char *bytes, unsigned int size, qoa_desc *qoa);
 unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa_desc *qoa, short *sample_data, unsigned int *frame_len);
-short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *file);
+short *qoa_decode(const unsigned char *bytes, unsigned int size, qoa_desc *file);
 
 #ifndef QOA_NO_STDIO
 
-int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa);
+unsigned int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa);
 void *qoa_read(const char *filename, qoa_desc *qoa);
 
 #endif /* QOA_NO_STDIO */
@@ -183,7 +183,7 @@ the higher end. Note that the residual zero is identical to the lowest positive
 value. This is mostly fine, since the qoa_div() function always rounds away
 from zero. */
 
-static const int qoa_quant_tab[17] = {
+static const unsigned int qoa_quant_tab[17] = {
 	7, 7, 7, 5, 5, 3, 3, 1, /* -8..-1 */
 	0,                      /*  0     */
 	0, 2, 2, 4, 4, 6, 6, 6  /*  1.. 8 */
@@ -200,7 +200,7 @@ scalefactor 2048 times the quant range of 8 we can encode residuals up to 2**14.
 The scalefactor values are computed as:
 scalefactor_tab[s] <- round(pow(s + 1, 2.75)) */
 
-static const int qoa_scalefactor_tab[16] = {
+static const unsigned int qoa_scalefactor_tab[16] = {
 	1, 7, 21, 45, 84, 138, 211, 304, 421, 562, 731, 928, 1157, 1419, 1715, 2048
 };
 
@@ -213,7 +213,7 @@ do this in .16 fixed point with integers, instead of floats.
 The reciprocal_tab is computed as:
 reciprocal_tab[s] <- ((1<<16) + scalefactor_tab[s] - 1) / scalefactor_tab[s] */
 
-static const int qoa_reciprocal_tab[16] = {
+static const unsigned int qoa_reciprocal_tab[16] = {
 	65536, 9363, 3121, 1457, 781, 475, 311, 216, 156, 117, 90, 71, 57, 47, 39, 32
 };
 
@@ -231,7 +231,7 @@ The rounding employed here is "to nearest, ties away from zero",  i.e. positive
 and negative values are treated symmetrically.
 */
 
-static const int qoa_dequant_tab[16][8] = {
+static const signed int qoa_dequant_tab[16][8] = {
 	{   1,    -1,    3,    -3,    5,    -5,     7,     -7},
 	{   5,    -5,   18,   -18,   32,   -32,    49,    -49},
 	{  16,   -16,   53,   -53,   95,   -95,   147,   -147},
@@ -264,21 +264,21 @@ the history. This, surprisingly, is sufficient to get worthwhile predictions.
 This is all done with fixed point integers. Hence the right-shifts when updating
 the weights and calculating the prediction. */
 
-static int qoa_lms_predict(qoa_lms_t *lms) {
-	int prediction = 0;
-	for (int i = 0; i < QOA_LMS_LEN; i++) {
+static signed int qoa_lms_predict(qoa_lms_t *lms) {
+	signed int prediction = 0;
+	for (unsigned int i = 0; i < QOA_LMS_LEN; i++) {
 		prediction += lms->weights[i] * lms->history[i];
 	}
 	return prediction >> 13;
 }
 
-static void qoa_lms_update(qoa_lms_t *lms, int sample, int residual) {
-	int delta = residual >> 4;
-	for (int i = 0; i < QOA_LMS_LEN; i++) {
+static void qoa_lms_update(qoa_lms_t *lms, signed int sample, signed int residual) {
+	signed int delta = residual >> 4;
+	for (unsigned int i = 0; i < QOA_LMS_LEN; i++) {
 		lms->weights[i] += lms->history[i] < 0 ? -delta : delta;
 	}
 
-	for (int i = 0; i < QOA_LMS_LEN-1; i++) {
+	for (unsigned int i = 0; i < QOA_LMS_LEN-1; i++) {
 		lms->history[i] = lms->history[i+1];
 	}
 	lms->history[QOA_LMS_LEN-1] = sample;
@@ -291,14 +291,18 @@ returns as 0, which is handled in the qoa_quant_tab[].
 qoa_div() takes an index into the .16 fixed point qoa_reciprocal_tab as an
 argument, so it can do the division with a cheaper integer multiplication. */
 
-static inline int qoa_div(int v, int scalefactor) {
-	int reciprocal = qoa_reciprocal_tab[scalefactor];
-	int n = (v * reciprocal + (1 << 15)) >> 16;
+static inline signed int qoa_div(signed int v, unsigned int scalefactor) {
+	signed int reciprocal = qoa_reciprocal_tab[scalefactor];
+	signed int n = (v * reciprocal + (1 << 15)) >> 16;
 	n = n + ((v > 0) - (v < 0)) - ((n > 0) - (n < 0)); /* round away from 0 */
 	return n;
 }
 
-static inline int qoa_clamp(int v, int min, int max) {
+static inline unsigned int qoa_min(unsigned int x, unsigned int y) {
+	return (x < y) ? x : y;
+}
+
+static inline signed int qoa_clamp(signed int v, signed int min, signed int max) {
 	if (v < min) { return min; }
 	if (v > max) { return max; }
 	return v;
@@ -308,7 +312,7 @@ static inline int qoa_clamp(int v, int min, int max) {
 performance quite a bit. The extra if() statement works nicely with the CPUs
 branch prediction as this branch is rarely taken. */
 
-static inline int qoa_clamp_s16(int v) {
+static inline signed int qoa_clamp_s16(signed int v) {
 	if ((unsigned int)(v + 32768) > 65535) {
 		if (v < -32768) { return -32768; }
 		if (v >  32767) { return  32767; }
@@ -355,7 +359,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	unsigned int p = 0;
 	unsigned int slices = (frame_len + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
 	unsigned int frame_size = QOA_FRAME_SIZE(channels, slices);
-	int prev_scalefactor[QOA_MAX_CHANNELS] = {0};
+	unsigned int prev_scalefactor[QOA_MAX_CHANNELS] = {0};
 
 	/* Write the frame header */
 	qoa_write_u64((
@@ -370,7 +374,7 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 		/* Write the current LMS state */
 		qoa_uint64_t weights = 0;
 		qoa_uint64_t history = 0;
-		for (int i = 0; i < QOA_LMS_LEN; i++) {
+		for (unsigned int i = 0; i < QOA_LMS_LEN; i++) {
 			history = (history << 16) | (qoa->lms[c].history[i] & 0xffff);
 			weights = (weights << 16) | (qoa->lms[c].weights[i] & 0xffff);
 		}
@@ -383,9 +387,9 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	for (unsigned int sample_index = 0; sample_index < frame_len; sample_index += QOA_SLICE_LEN) {
 
 		for (unsigned int c = 0; c < channels; c++) {
-			int slice_len = qoa_clamp(QOA_SLICE_LEN, 0, frame_len - sample_index);
-			int slice_start = sample_index * channels + c;
-			int slice_end = (sample_index + slice_len) * channels + c;
+			unsigned int slice_len = qoa_min(QOA_SLICE_LEN, frame_len - sample_index);
+			unsigned int slice_start = sample_index * channels + c;
+			unsigned int slice_end = (sample_index + slice_len) * channels + c;
 
 			/* Brute force search for the best scalefactor. Just go through all
 			16 scalefactors, encode all samples for the current slice and
@@ -396,13 +400,13 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 			#endif
 			qoa_uint64_t best_slice = 0;
 			qoa_lms_t best_lms;
-			int best_scalefactor = 0;
+			unsigned int best_scalefactor = 0;
 
-			for (int sfi = 0; sfi < 16; sfi++) {
+			for (unsigned int sfi = 0; sfi < 16; sfi++) {
 				/* There is a strong correlation between the scalefactors of
 				neighboring slices. As an optimization, start testing
 				the best scalefactor of the previous slice first. */
-				int scalefactor = (sfi + prev_scalefactor[c]) & (16 - 1);
+				unsigned int scalefactor = (sfi + prev_scalefactor[c]) & (16 - 1);
 
 				/* We have to reset the LMS state to the last known good one
 				before trying each scalefactor, as each pass updates the LMS
@@ -414,21 +418,21 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 					qoa_uint64_t current_error = 0;
 				#endif
 
-				for (int si = slice_start; si < slice_end; si += channels) {
-					int sample = sample_data[si];
-					int predicted = qoa_lms_predict(&lms);
+				for (unsigned int si = slice_start; si < slice_end; si += channels) {
+					signed int sample = sample_data[si];
+					signed int predicted = qoa_lms_predict(&lms);
 
-					int residual = sample - predicted;
-					int scaled = qoa_div(residual, scalefactor);
-					int clamped = qoa_clamp(scaled, -8, 8);
-					int quantized = qoa_quant_tab[clamped + 8];
-					int dequantized = qoa_dequant_tab[scalefactor][quantized];
-					int reconstructed = qoa_clamp_s16(predicted + dequantized);
+					signed int residual = sample - predicted;
+					signed int scaled = qoa_div(residual, scalefactor);
+					signed int clamped = qoa_clamp(scaled, -8, 8);
+					unsigned int quantized = qoa_quant_tab[clamped + 8];
+					signed int dequantized = qoa_dequant_tab[scalefactor][quantized];
+					signed int reconstructed = qoa_clamp_s16(predicted + dequantized);
 
 
 					/* If the weights have grown too large, we introduce a penalty
 					here. This prevents pops/clicks in certain problem cases */
-					int weights_penalty = ((
+					signed int weights_penalty = ((
 						lms.weights[0] * lms.weights[0] + 
 						lms.weights[1] * lms.weights[1] + 
 						lms.weights[2] * lms.weights[2] + 
@@ -512,7 +516,7 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 
 		/* Explicitly set the history samples to 0, as we might have some
 		garbage in there. */
-		for (int i = 0; i < QOA_LMS_LEN; i++) {
+		for (unsigned int i = 0; i < QOA_LMS_LEN; i++) {
 			qoa->lms[c].history[i] = 0;
 		}
 	}
@@ -524,9 +528,9 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 		qoa->error = 0;
 	#endif
 
-	int frame_len = QOA_FRAME_LEN;
+	unsigned int frame_len = QOA_FRAME_LEN;
 	for (unsigned int sample_index = 0; sample_index < qoa->samples; sample_index += frame_len) {
-		frame_len = qoa_clamp(QOA_FRAME_LEN, 0, qoa->samples - sample_index);		
+		frame_len = qoa_min(QOA_FRAME_LEN, qoa->samples - sample_index);
 		const short *frame_samples = sample_data + sample_index * qoa->channels;
 		unsigned int frame_size = qoa_encode_frame(frame_samples, qoa, frame_len, bytes + p);
 		p += frame_size;
@@ -545,7 +549,7 @@ unsigned int qoa_max_frame_size(qoa_desc *qoa) {
 	return QOA_FRAME_SIZE(qoa->channels, QOA_SLICES_PER_FRAME);
 }
 
-unsigned int qoa_decode_header(const unsigned char *bytes, int size, qoa_desc *qoa) {
+unsigned int qoa_decode_header(const unsigned char *bytes, unsigned int size, qoa_desc *qoa) {
 	unsigned int p = 0;
 	if (size < QOA_MIN_FILESIZE) {
 		return 0;
@@ -613,7 +617,7 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	for (unsigned int c = 0; c < channels; c++) {
 		qoa_uint64_t history = qoa_read_u64(bytes, &p);
 		qoa_uint64_t weights = qoa_read_u64(bytes, &p);
-		for (int i = 0; i < QOA_LMS_LEN; i++) {
+		for (unsigned int i = 0; i < QOA_LMS_LEN; i++) {
 			qoa->lms[c].history[i] = ((signed short)(history >> 48));
 			history <<= 16;
 			qoa->lms[c].weights[i] = ((signed short)(weights >> 48));
@@ -627,17 +631,17 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 		for (unsigned int c = 0; c < channels; c++) {
 			qoa_uint64_t slice = qoa_read_u64(bytes, &p);
 
-			int scalefactor = (slice >> 60) & 0xf;
+			unsigned int scalefactor = (slice >> 60) & 0xf;
 			slice <<= 4;
 
-			int slice_start = sample_index * channels + c;
-			int slice_end = qoa_clamp(sample_index + QOA_SLICE_LEN, 0, samples) * channels + c;
+			unsigned int slice_start = sample_index * channels + c;
+			unsigned int slice_end = qoa_min(sample_index + QOA_SLICE_LEN, samples) * channels + c;
 
-			for (int si = slice_start; si < slice_end; si += channels) {
-				int predicted = qoa_lms_predict(&qoa->lms[c]);
-				int quantized = (slice >> 61) & 0x7;
-				int dequantized = qoa_dequant_tab[scalefactor][quantized];
-				int reconstructed = qoa_clamp_s16(predicted + dequantized);
+			for (unsigned int si = slice_start; si < slice_end; si += channels) {
+				signed int predicted = qoa_lms_predict(&qoa->lms[c]);
+				unsigned int quantized = (slice >> 61) & 0x7;
+				signed int dequantized = qoa_dequant_tab[scalefactor][quantized];
+				signed int reconstructed = qoa_clamp_s16(predicted + dequantized);
 				
 				sample_data[si] = reconstructed;
 				slice <<= 3;
@@ -653,14 +657,14 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	return p;
 }
 
-short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
+short *qoa_decode(const unsigned char *bytes, unsigned int size, qoa_desc *qoa) {
 	unsigned int p = qoa_decode_header(bytes, size, qoa);
 	if (!p) {
 		return NULL;
 	}
 
 	/* Calculate the required size of the sample buffer and allocate */
-	int total_samples = qoa->samples * qoa->channels;
+	unsigned int total_samples = qoa->samples * qoa->channels;
 	short *sample_data = QOA_MALLOC(total_samples * sizeof(short));
 
 	unsigned int sample_index = 0;
@@ -688,7 +692,7 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 #ifndef QOA_NO_STDIO
 #include <stdio.h>
 
-int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
+unsigned int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
 	FILE *f = fopen(filename, "wb");
 	unsigned int size;
 	void *encoded;
@@ -712,7 +716,8 @@ int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
 
 void *qoa_read(const char *filename, qoa_desc *qoa) {
 	FILE *f = fopen(filename, "rb");
-	int size, bytes_read;
+	unsigned int bytes_read;
+	long size;
 	void *data;
 	short *sample_data;
 

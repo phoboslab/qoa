@@ -56,7 +56,7 @@ qoaplay_desc *qoaplay_open(const char *path) {
 	/* Read and decode the file header */
 
 	unsigned char header[QOA_MIN_FILESIZE];
-	int read = fread(header, QOA_MIN_FILESIZE, 1, file);
+	unsigned int read = fread(header, QOA_MIN_FILESIZE, 1, file);
 	if (!read) {
 		return NULL;
 	}
@@ -113,10 +113,10 @@ void qoaplay_rewind(qoaplay_desc *qp) {
 	qp->sample_data_pos = 0;
 }
 
-unsigned int qoaplay_decode(qoaplay_desc *qp, float *sample_data, int num_samples) {
-	int src_index = qp->sample_data_pos * qp->info.channels;
-	int dst_index = 0;
-	for (int i = 0; i < num_samples; i++) {
+unsigned int qoaplay_decode(qoaplay_desc *qp, float *sample_data, unsigned int num_samples) {
+	unsigned int src_index = qp->sample_data_pos * qp->info.channels;
+	unsigned int dst_index = 0;
+	for (unsigned int i = 0; i < num_samples; i++) {
 
 		/* Do we have to decode more samples? */
 		if (qp->sample_data_len - qp->sample_data_pos == 0) {
@@ -129,7 +129,7 @@ unsigned int qoaplay_decode(qoaplay_desc *qp, float *sample_data, int num_sample
 		}
 
 		/* Normalize to -1..1 floats and write to dest */
-		for (int c = 0; c < qp->info.channels; c++) {
+		for (unsigned int c = 0; c < qp->info.channels; c++) {
 			sample_data[dst_index++] = qp->sample_data[src_index++] / 32768.0;
 		}
 		qp->sample_data_pos++;
@@ -146,7 +146,7 @@ double qoaplay_get_time(qoaplay_desc *qp) {
 	return (double)qp->sample_pos / (double)qp->info.samplerate;
 }
 
-int qoaplay_get_frame(qoaplay_desc *qp) {
+unsigned int qoaplay_get_frame(qoaplay_desc *qp) {
 	return qp->sample_pos / QOA_FRAME_LEN;
 }
 
@@ -154,7 +154,7 @@ void qoaplay_seek_frame(qoaplay_desc *qp, int frame) {
 	if (frame < 0) {
 		frame = 0;
 	}
-	if (frame > qp->info.samples / QOA_FRAME_LEN) {
+	if ((unsigned int)frame > qp->info.samples / QOA_FRAME_LEN) {
 		frame = qp->info.samples / QOA_FRAME_LEN;
 	}
 
@@ -200,8 +200,8 @@ hand over to the platform's audio API. All file IO and decoding is done here. */
 
 static void sokol_audio_cb(float* sample_data, int num_samples, int num_channels, void *user_data) {
 	qoaplay_desc *qoaplay = (qoaplay_desc *)user_data;
-	if (num_channels != qoaplay->info.channels) {
-		printf("Audio cb channels %d not equal qoa channels %d\n", num_channels, qoaplay->info.channels);
+	if ((unsigned int)num_channels != qoaplay->info.channels) {
+		printf("Audio cb channels %d not equal qoa channels %u\n", num_channels, qoaplay->info.channels);
 		exit(1);
 	}
 
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
 	}
 
 	printf(
-		"%s: channels: %d, samplerate: %d hz, samples per channel: %d, duration: %d sec\n",
+		"%s: channels: %u, samplerate: %u hz, samples per channel: %u, duration: %u sec\n",
 		argv[1], 
 		qoaplay->info.channels,
 		qoaplay->info.samplerate,
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
 		.user_data = qoaplay
 	});
 
-	int wants_to_quit = 0;
+	unsigned int wants_to_quit = 0;
 	while (!wants_to_quit) {
 		char c = getch();
 		switch (c) {
