@@ -598,15 +598,18 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	unsigned int samples    = (frame_header >> 16) & 0x00ffff;
 	unsigned int frame_size = (frame_header      ) & 0x00ffff;
 
-	unsigned int data_size = frame_size - 8 - QOA_LMS_LEN * 4 * channels;
-	unsigned int num_slices = data_size / 8;
-	unsigned int max_total_samples = num_slices * QOA_SLICE_LEN;
-
+	unsigned int header_size = 8 + QOA_LMS_LEN * 4 * channels;
+	unsigned int data_size = frame_size - header_size;
+	unsigned int max_total_slices = data_size / 8;
+	unsigned int num_slices = (samples + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
+	
 	if (
 		channels != qoa->channels || 
 		samplerate != qoa->samplerate ||
+		frame_size < header_size ||
 		frame_size > size ||
-		samples * channels > max_total_samples
+		num_slices > QOA_SLICES_PER_FRAME ||
+		num_slices * channels > max_total_slices
 	) {
 		return 0;
 	}
@@ -662,8 +665,8 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 		return NULL;
 	}
 
-	/* Calculate the required size of the sample buffer and allocate */
-	int total_samples = qoa->samples * qoa->channels;
+	/* Calculate the required size of the sample buffer and allocate, round up to full frames */
+	int total_samples = ((qoa->samples + QOA_FRAME_LEN - 1) / QOA_FRAME_LEN) * QOA_FRAME_LEN * qoa->channels;
 	short *sample_data = QOA_MALLOC(total_samples * sizeof(short));
 
 	unsigned int sample_index = 0;
