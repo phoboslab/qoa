@@ -571,7 +571,10 @@ unsigned int qoa_decode_header(const unsigned char *bytes, int size, qoa_desc *q
 	qoa->channels   = (frame_header >> 56) & 0x0000ff;
 	qoa->samplerate = (frame_header >> 32) & 0xffffff;
 
-	if (qoa->channels == 0 || qoa->samples == 0 || qoa->samplerate == 0) {
+	if (
+		qoa->channels == 0 || qoa->samples == 0 || qoa->samplerate == 0 ||
+		qoa->channels > QOA_MAX_CHANNELS
+	) {
 		return 0;
 	}
 
