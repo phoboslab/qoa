@@ -666,8 +666,14 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 	}
 
 	/* Calculate the required size of the sample buffer and allocate, round up to full frames */
-	int total_samples = ((qoa->samples + QOA_FRAME_LEN - 1) / QOA_FRAME_LEN) * QOA_FRAME_LEN * qoa->channels;
+	unsigned long long num_frames = ((unsigned long long)qoa->samples + QOA_FRAME_LEN - 1) / QOA_FRAME_LEN;
+	unsigned long long total_samples_ull = num_frames * QOA_FRAME_LEN * (unsigned long long)qoa->channels;
+
+	if (total_samples_ull > 0x7fffffff) { return NULL; }
+
+	unsigned int total_samples = (unsigned int)total_samples_ull;
 	short *sample_data = QOA_MALLOC(total_samples * sizeof(short));
+	if (!sample_data) { return NULL; }
 
 	unsigned int sample_index = 0;
 	unsigned int frame_len;
