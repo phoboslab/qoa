@@ -65,7 +65,7 @@ void qoaconv_fwrite_u32_le(unsigned int v, FILE *fh) {
 	buf[1] = 0xff & (v >>  8);
 	buf[2] = 0xff & (v >> 16);
 	buf[3] = 0xff & (v >> 24);
-	int wrote = fwrite(buf, sizeof(unsigned int), 1, fh);
+	unsigned int wrote = fwrite(buf, sizeof(unsigned int), 1, fh);
 	QOACONV_ASSERT(wrote, "Write error");
 }
 
@@ -73,29 +73,29 @@ void qoaconv_fwrite_u16_le(unsigned short v, FILE *fh) {
 	unsigned char buf[sizeof(unsigned short)];
 	buf[0] = 0xff & (v      );
 	buf[1] = 0xff & (v >>  8);
-	int wrote = fwrite(buf, sizeof(unsigned short), 1, fh);
+	unsigned int wrote = fwrite(buf, sizeof(unsigned short), 1, fh);
 	QOACONV_ASSERT(wrote, "Write error");
 }
 
 unsigned int qoaconv_fread_u32_le(FILE *fh) {
 	unsigned char buf[sizeof(unsigned int)];
-	int read = fread(buf, sizeof(unsigned int), 1, fh);
+	unsigned int read = fread(buf, sizeof(unsigned int), 1, fh);
 	QOACONV_ASSERT(read, "Read error or unexpected end of file");
 	return (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
 }
 
 unsigned short qoaconv_fread_u16_le(FILE *fh) {
 	unsigned char buf[sizeof(unsigned short)];
-	int read = fread(buf, sizeof(unsigned short), 1, fh);
+	unsigned int read = fread(buf, sizeof(unsigned short), 1, fh);
 	QOACONV_ASSERT(read, "Read error or unexpected end of file");
 	return (buf[1] << 8) | buf[0];
 }
 
-int qoaconv_wav_write(const char *path, short *sample_data, qoa_desc *desc) {
+unsigned int qoaconv_wav_write(const char *path, short *sample_data, qoa_desc *desc) {
 	unsigned int data_size = desc->samples * desc->channels * sizeof(short);
 	unsigned int samplerate = desc->samplerate;
-	short bits_per_sample = 16;
-	short channels = desc->channels;
+	unsigned short bits_per_sample = 16;
+	unsigned short channels = desc->channels;
 
 	/* Lifted from https://www.jonolick.com/code.html - public domain
 	Made endian agnostic using qoaconv_fwrite() */
@@ -172,7 +172,7 @@ short *qoaconv_wav_read(const char *path, qoa_desc *desc) {
 
 	unsigned char *wav_bytes = malloc(data_size);
 	QOACONV_ASSERT(wav_bytes, "Malloc for %d bytes failed", data_size);
-	int read = fread(wav_bytes, data_size, 1, fh);
+	unsigned int read = fread(wav_bytes, data_size, 1, fh);
 	QOACONV_ASSERT(read, "Read error or unexpected end of file for %d bytes", data_size);
 	fclose(fh);
 
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
 	QOACONV_ASSERT(sample_data, "Can't load/decode %s", argv[1]);
 
 	printf(
-		"%s: channels: %d, samplerate: %d hz, samples per channel: %d, duration: %d sec (took %.2f seconds)\n",
+		"%s: channels: %u, samplerate: %u hz, samples per channel: %u, duration: %u sec (took %.2f seconds)\n",
 		argv[1], desc.channels, desc.samplerate, desc.samples, desc.samples/desc.samplerate,
 		(double)(end_decode - start_decode) / CLOCKS_PER_SEC
 	);
@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
 
 	clock_t start_encode = clock();
 
-	int bytes_written = 0;
+	unsigned int bytes_written = 0;
 	double psnr = INFINITY;
 	if (QOACONV_STR_ENDS_WITH(argv[2], ".wav")) {
 		bytes_written = qoaconv_wav_write(argv[2], sample_data, &desc);
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
 	free(sample_data);
 
 	printf(
-		"%s: size: %d kb (%d bytes) = %.2f kbit/s, psnr: %.2f db (took %.2f seconds)\n",
+		"%s: size: %u kb (%u bytes) = %.2f kbit/s, psnr: %.2f db (took %.2f seconds)\n",
 		argv[2], bytes_written/1024, bytes_written, 
 		(((float)bytes_written*8)/((float)desc.samples/(float)desc.samplerate))/1024, psnr,
 		(double)(end_encode - start_encode) / CLOCKS_PER_SEC
