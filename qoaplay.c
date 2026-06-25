@@ -58,12 +58,14 @@ qoaplay_desc *qoaplay_open(const char *path) {
 	unsigned char header[QOA_MIN_FILESIZE];
 	int read = fread(header, QOA_MIN_FILESIZE, 1, file);
 	if (!read) {
+		fclose(file);
 		return NULL;
 	}
 
 	qoa_desc qoa;
 	unsigned int first_frame_pos = qoa_decode_header(header, QOA_MIN_FILESIZE, &qoa);
 	if (!first_frame_pos) {
+		fclose(file);
 		return NULL;
 	}
 
@@ -78,8 +80,12 @@ qoaplay_desc *qoaplay_open(const char *path) {
 	unsigned int sample_data_size = qoa.channels * QOA_FRAME_LEN * sizeof(short) * 2;
 
 	qoaplay_desc *qp = malloc(sizeof(qoaplay_desc) + buffer_size + sample_data_size);
+	if (!qp) {
+		fclose(file);
+		return NULL;
+	}
+
 	memset(qp, 0, sizeof(qoaplay_desc));
-	
 	qp->first_frame_pos = first_frame_pos;
 	qp->file = file;
 	qp->buffer = ((unsigned char *)qp) + sizeof(qoaplay_desc);
