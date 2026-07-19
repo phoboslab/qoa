@@ -672,6 +672,7 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 	if (total_samples_ull > 0x7fffffff) { return NULL; }
 
 	unsigned int total_samples = (unsigned int)total_samples_ull;
+	unsigned int max_sample_index = total_samples / qoa->channels;
 	short *sample_data = QOA_MALLOC(total_samples * sizeof(short));
 	if (!sample_data) { return NULL; }
 
@@ -681,6 +682,22 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 
 	/* Decode all frames */
 	do {
+		/* qoa_decode_frame() only checks that a frame's own sample count
+		   fits within a single frame (num_slices <= QOA_SLICES_PER_FRAME);
+		   it has no way of knowing how much of sample_data is left. A file
+		   whose frames don't line up with the qoa->samples the buffer was
+		   sized from -- e.g. a short frame in the middle of the stream
+		   followed by another full-length one -- can otherwise push
+		   sample_index past max_sample_index and write out of bounds. Stop
+		   before that happens. */
+		if (sample_index >= max_sample_index || size - (int)p < 8) {
+			break;
+		}
+		unsigned int next_frame_samples = ((unsigned int)bytes[p + 4] << 8) | bytes[p + 5];
+		if (next_frame_samples > max_sample_index - sample_index) {
+			break;
+		}
+
 		short *sample_ptr = sample_data + sample_index * qoa->channels;
 		frame_size = qoa_decode_frame(bytes + p, size - p, qoa, sample_ptr, &frame_len);
 
