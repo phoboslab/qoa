@@ -21,6 +21,12 @@ endif
 TARGET_PLAY ?= qoaplay
 CFLAGS_PLAY ?= -std=gnu99 -O3
 
+# QOAVBRTEST
+
+TARGET_TEST ?= qoavbrtest
+CFLAGS_TEST ?= -std=c99 -O3
+LFLAGS_TEST ?= -lm
+
 ifeq ($(OS),Windows_NT)
 	LFLAGS_PLAY ?= # defined in #pragma() in sokol_audio.h
 else
@@ -39,9 +45,16 @@ $(TARGET_PLAY):$(TARGET_PLAY).c qoa.h
 	$(CC) $(CFLAGS_PLAY) $(TARGET_PLAY).c -o $(TARGET_PLAY) $(LFLAGS_PLAY)
 
 conv: $(TARGET_CONV)
-$(TARGET_CONV):$(TARGET_CONV).c qoa.h
+$(TARGET_CONV):$(TARGET_CONV).c qoa.h qoavbr.h
 	$(CC) $(CFLAGS_CONV) $(TARGET_CONV).c -o $(TARGET_CONV) $(LFLAGS_CONV)
+
+$(TARGET_TEST):$(TARGET_TEST).c qoavbr.h
+	$(CC) $(CFLAGS_TEST) $(TARGET_TEST).c -o $(TARGET_TEST) $(LFLAGS_TEST)
+
+.PHONY: test
+test: $(TARGET_TEST)
+	./$(TARGET_TEST)
 
 .PHONY: clean
 clean:
-	$(RM) $(TARGET_PLAY) $(TARGET_CONV)
+	$(RM) $(TARGET_PLAY) $(TARGET_CONV) $(TARGET_TEST)

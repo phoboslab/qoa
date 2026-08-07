@@ -4,7 +4,7 @@ Copyright (c) 2023, Dominic Szablewski - https://phoboslab.org
 SPDX-License-Identifier: MIT
 
 
-Command line tool to convert FLAC, MP3, WAV to QOA and QOA to WAV
+Command line tool to convert FLAC, MP3, WAV to QOA or QAV and QOA/QAV to WAV
 
 Define QOACONV_HAS_DRMP3 and QOACONV_HAS_DRFLAC for MP3 and FLAC support
  -"dr_mp3.h" (https://github.com/mackron/dr_libs/blob/master/dr_mp3.h)
@@ -36,6 +36,10 @@ Compile with:
 #define QOA_IMPLEMENTATION
 #define QOA_RECORD_TOTAL_ERROR
 #include "qoa.h"
+
+#define QOAVBR_IMPLEMENTATION
+#define QOAVBR_RECORD_TOTAL_ERROR
+#include "qoavbr.h"
 
 #define QOACONV_STRINGIFY(x) #x
 #define QOACONV_TOSTRING(x) QOACONV_STRINGIFY(x)
@@ -231,10 +235,32 @@ short *qoaconv_wav_read(const char *path, qoa_desc *desc) {
 	Main */
 
 int main(int argc, char **argv) {
-	QOACONV_ASSERT(argc >= 3, "\nUsage: qoaconv in.{wav,mp3,flac,qoa} out.{wav,qoa}")
+	QOACONV_ASSERT(argc >= 3,
+		"\nUsage: qoaconv in.{wav,mp3,flac,qoa,qav} out.{wav,qoa,qav}"
+		"\n       [--chunk-samples N] [--target-bits N] [--high-fraction N]"
+	)
 
 	qoa_desc desc;
 	short *sample_data = NULL;
+
+	qoavbr_desc vbr;
+	qoavbr_desc_init(&vbr);
+
+	for (int i = 3; i < argc; i += 2) {
+		QOACONV_ASSERT(i + 1 < argc, "Missing value for %s", argv[i]);
+		if (strcmp(argv[i], "--chunk-samples") == 0) {
+			vbr.chunk_samples = atoi(argv[i + 1]);
+		}
+		else if (strcmp(argv[i], "--target-bits") == 0) {
+			vbr.target_bits = atof(argv[i + 1]);
+		}
+		else if (strcmp(argv[i], "--high-fraction") == 0) {
+			vbr.high_fraction = atof(argv[i + 1]);
+		}
+		else {
+			QOACONV_ABORT("Unknown option %s", argv[i]);
+		}
+	}
 
 
 	/* Decode input */
@@ -260,6 +286,14 @@ int main(int argc, char **argv) {
 	}
 	else if (QOACONV_STR_ENDS_WITH(argv[1], ".qoa")) {
 		sample_data = qoa_read(argv[1], &desc);
+	}
+	else if (QOACONV_STR_ENDS_WITH(argv[1], ".qav")) {
+		qoavbr_desc source;
+		qoavbr_desc_init(&source);
+		sample_data = qoavbr_read(argv[1], &source);
+		desc.channels = 1;
+		desc.samplerate = source.samplerate;
+		desc.samples = source.samples;
 	}
 	else {
 		QOACONV_ABORT("Unknown file type for %s", argv[1]);
@@ -290,6 +324,18 @@ int main(int argc, char **argv) {
 		#ifdef QOA_RECORD_TOTAL_ERROR
 			if (desc.error) {
 				psnr = -20.0 * log10(sqrt(desc.error/(desc.samples * desc.channels)) / 32768.0);
+			}
+		#endif
+	}
+	else if (QOACONV_STR_ENDS_WITH(argv[2], ".qav")) {
+		QOACONV_ASSERT(desc.channels == 1, "QAV is mono only");
+		QOACONV_ASSERT(desc.samplerate == QOAVBR_SAMPLERATE, "QAV requires a %d hz source", QOAVBR_SAMPLERATE);
+		vbr.samplerate = desc.samplerate;
+		vbr.samples = desc.samples;
+		bytes_written = qoavbr_write(argv[2], sample_data, &vbr);
+		#ifdef QOAVBR_RECORD_TOTAL_ERROR
+			if (vbr.error) {
+				psnr = -20.0 * log10(sqrt(vbr.error/vbr.samples) / 32768.0);
 			}
 		#endif
 	}

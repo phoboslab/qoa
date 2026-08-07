@@ -4,3 +4,5 @@ sokol_audio.h
 dr_mp3.h
 qoaconv
 qoaplay
+qoavbrtest
+*.exe

@@ -15,6 +15,30 @@ Audio samples in WAV & QOA format can be found at: https://qoaformat.org/samples
 ⚠️ This implementation has not yet been fuzzed. Don't use it with untrusted input.
 
 
+## QAV1 - variable bitrate QOA
+
+[qoavbr.h](qoavbr.h) implements QAV1, a mono 12800 hz variant that spends 1, 2
+or 3 bits per sample instead of QOA's fixed 3.2, choosing the bit depth per
+chunk so a file lands on a target average. It is a separate single-file library
+and container; `qoa.h` is untouched. See the top of
+[qoavbr.h](qoavbr.h) for the format.
+
+`qoaconv` reads and writes `.qav` alongside `.qoa`:
+
+```bash
+./qoaconv in.wav out.qav --target-bits 1.75 --high-fraction 0.125
+./qoaconv out.qav decoded.wav
+```
+
+`--chunk-samples` (default 2048) sets the chunk length, `--target-bits`
+(default 1.75) the average bits per sample, and `--high-fraction` (default
+0.125) the share of chunks that get 3 bits. The share getting 1 bit follows as
+`2 + high_fraction - target_bits`.
+
+Call `make test` to build and run `qoavbrtest`, which round trips a fixed
+signal against golden hashes taken from the reference encoder.
+
+
 ## Compiling
 
 Call `make` to build `qoaconv` and `qoaplay`. By default `qoaconv` is compiled 
