@@ -1,8 +1,8 @@
 CC ?= gcc
 
-# QOACONV
+# QSACONV
 
-TARGET_CONV ?= qoaconv
+TARGET_CONV ?= qsaconv
 CFLAGS_CONV ?= -std=c99 -O3
 LFLAGS_CONV ?= -lm
 
@@ -11,19 +11,19 @@ LFLAGS_CONV ?= -lm
 # curl https://raw.githubusercontent.com/mackron/dr_libs/refs/heads/master/dr_mp3.h -o dr_mp3.h
 # curl https://raw.githubusercontent.com/mackron/dr_libs/refs/heads/master/dr_flac.h -o dr_flac.h
 ifeq ($(HAS_DRLIBS), true)
-	CFLAGS_CONV := $(CFLAGS_CONV) -D QOACONV_HAS_DRMP3 -D QOACONV_HAS_DRFLAC
+	CFLAGS_CONV := $(CFLAGS_CONV) -D QSACONV_HAS_DRMP3 -D QSACONV_HAS_DRFLAC
 endif
 
-# QOAPLAY
+# QSAPLAY
 # Requires
 # - https://github.com/floooh/sokol/blob/master/sokol_audio.h
 # FIXME: not yet tested on Windows/macOS
-TARGET_PLAY ?= qoaplay
+TARGET_PLAY ?= qsaplay
 CFLAGS_PLAY ?= -std=gnu99 -O3
 
-# QOAVBRTEST
+# QSATEST
 
-TARGET_TEST ?= qoavbrtest
+TARGET_TEST ?= qsatest
 CFLAGS_TEST ?= -std=c99 -O3
 LFLAGS_TEST ?= -lm
 
@@ -41,14 +41,14 @@ endif
 all: $(TARGET_PLAY) $(TARGET_CONV)
 
 play: $(TARGET_PLAY)
-$(TARGET_PLAY):$(TARGET_PLAY).c qoa.h
+$(TARGET_PLAY):$(TARGET_PLAY).c qsa.h
 	$(CC) $(CFLAGS_PLAY) $(TARGET_PLAY).c -o $(TARGET_PLAY) $(LFLAGS_PLAY)
 
 conv: $(TARGET_CONV)
-$(TARGET_CONV):$(TARGET_CONV).c qoa.h qoavbr.h
+$(TARGET_CONV):$(TARGET_CONV).c qsa.h
 	$(CC) $(CFLAGS_CONV) $(TARGET_CONV).c -o $(TARGET_CONV) $(LFLAGS_CONV)
 
-$(TARGET_TEST):$(TARGET_TEST).c qoavbr.h
+$(TARGET_TEST):$(TARGET_TEST).c qsa.h
 	$(CC) $(CFLAGS_TEST) $(TARGET_TEST).c -o $(TARGET_TEST) $(LFLAGS_TEST)
 
 .PHONY: test

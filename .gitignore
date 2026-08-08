@@ -2,7 +2,7 @@ tests/
 dr_flac.h
 sokol_audio.h
 dr_mp3.h
-qoaconv
-qoaplay
-qoavbrtest
+qsaconv
+qsaplay
+qsatest
 *.exe
