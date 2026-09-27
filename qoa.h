@@ -8,7 +8,7 @@ QOA - The "Quite OK Audio" format for fast, lossy audio compression
 
 -- Data Format
 
-QOA encodes pulse-code modulated (PCM) audio data with up to 255 channels, 
+QOA encodes pulse-code modulated (PCM) audio data with up to 31 channels, 
 sample rates from 1 up to 16777215 hertz and a bit depth of 16 bits.
 
 The compression method employed in QOA is lossy; it discards some information
