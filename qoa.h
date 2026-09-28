@@ -140,21 +140,32 @@ typedef struct {
 	#endif
 } qoa_desc;
 
+#ifndef QOA_NO_ENCODE
+
 unsigned int qoa_encode_header(qoa_desc *qoa, unsigned char *bytes);
 unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned int frame_len, unsigned char *bytes);
+#ifndef QOA_NO_STDLIB
 void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len);
+#endif
+#ifndef QOA_NO_STDIO
+int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa);
+#endif
+
+#endif /* QOA_NO_ENCODE */
+
+#ifndef QOA_NO_DECODE
 
 unsigned int qoa_max_frame_size(qoa_desc *qoa);
 unsigned int qoa_decode_header(const unsigned char *bytes, int size, qoa_desc *qoa);
 unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa_desc *qoa, short *sample_data, unsigned int *frame_len);
+#ifndef QOA_NO_STDLIB
 short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *file);
-
+#endif
 #ifndef QOA_NO_STDIO
-
-int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa);
 void *qoa_read(const char *filename, qoa_desc *qoa);
+#endif
 
-#endif /* QOA_NO_STDIO */
+#endif /* QOA_NO_DECODE */
 
 
 #ifdef __cplusplus
@@ -167,12 +178,14 @@ void *qoa_read(const char *filename, qoa_desc *qoa);
 	Implementation */
 
 #ifdef QOA_IMPLEMENTATION
-#include <stdlib.h>
+#include <stddef.h>
 
-#ifndef QOA_MALLOC
+#if !defined(QOA_NO_STDLIB) && !defined(QOA_MALLOC)
+	#include <stdlib.h>
 	#define QOA_MALLOC(sz) malloc(sz)
 	#define QOA_FREE(p) free(p)
 #endif
+
 
 typedef unsigned long long qoa_uint64_t;
 
@@ -183,11 +196,15 @@ the higher end. Note that the residual zero is identical to the lowest positive
 value. This is mostly fine, since the qoa_div() function always rounds away
 from zero. */
 
+#ifndef QOA_NO_ENCODE
+
 static const int qoa_quant_tab[17] = {
 	7, 7, 7, 5, 5, 3, 3, 1, /* -8..-1 */
 	0,                      /*  0     */
 	0, 2, 2, 4, 4, 6, 6, 6  /*  1.. 8 */
 };
+
+#endif
 
 
 /* We have 16 different scalefactors. Like the quantized residuals these become
@@ -200,9 +217,13 @@ scalefactor 2048 times the quant range of 8 we can encode residuals up to 2**14.
 The scalefactor values are computed as:
 scalefactor_tab[s] <- round(pow(s + 1, 2.75)) */
 
+#if 0
+
 static const int qoa_scalefactor_tab[16] = {
 	1, 7, 21, 45, 84, 138, 211, 304, 421, 562, 731, 928, 1157, 1419, 1715, 2048
 };
+
+#endif
 
 
 /* The reciprocal_tab maps each of the 16 scalefactors to their rounded
@@ -213,9 +234,13 @@ do this in .16 fixed point with integers, instead of floats.
 The reciprocal_tab is computed as:
 reciprocal_tab[s] <- ((1<<16) + scalefactor_tab[s] - 1) / scalefactor_tab[s] */
 
+#ifndef QOA_NO_ENCODE
+
 static const int qoa_reciprocal_tab[16] = {
 	65536, 9363, 3121, 1457, 781, 475, 311, 216, 156, 117, 90, 71, 57, 47, 39, 32
 };
+
+#endif
 
 
 /* The dequant_tab maps each of the scalefactors and quantized residuals to
@@ -285,6 +310,8 @@ static void qoa_lms_update(qoa_lms_t *lms, int sample, int residual) {
 }
 
 
+#ifndef QOA_NO_ENCODE
+
 /* qoa_div() implements a rounding division, but avoids rounding to zero for
 small numbers. E.g. 0.1 will be rounded to 1. Note that 0 itself still
 returns as 0, which is handled in the qoa_quant_tab[].
@@ -297,6 +324,8 @@ static inline int qoa_div(int v, int scalefactor) {
 	n = n + ((v > 0) - (v < 0)) - ((n > 0) - (n < 0)); /* round away from 0 */
 	return n;
 }
+
+#endif
 
 static inline int qoa_clamp(int v, int min, int max) {
 	if (v < min) { return min; }
@@ -339,6 +368,8 @@ static inline void qoa_write_u64(qoa_uint64_t v, unsigned char *bytes, unsigned 
 	bytes[7] = (v >>  0) & 0xff;
 }
 
+
+#ifndef QOA_NO_ENCODE
 
 /* -----------------------------------------------------------------------------
 	Encoder */
@@ -483,6 +514,8 @@ unsigned int qoa_encode_frame(const short *sample_data, qoa_desc *qoa, unsigned 
 	return p;
 }
 
+#ifndef QOA_NO_STDLIB
+
 void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len) {
 	if (
 		qoa->samples == 0 || 
@@ -536,7 +569,12 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 	return bytes;
 }
 
+#endif /* QOA_NO_STDLIB */
 
+#endif /* QOA_NO_ENCODE */
+
+
+#ifndef QOA_NO_DECODE
 
 /* -----------------------------------------------------------------------------
 	Decoder */
@@ -659,6 +697,8 @@ unsigned int qoa_decode_frame(const unsigned char *bytes, unsigned int size, qoa
 	return p;
 }
 
+#ifndef QOA_NO_STDLIB
+
 short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 	unsigned int p = qoa_decode_header(bytes, size, qoa);
 	if (!p) {
@@ -692,6 +732,9 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 	return sample_data;
 }
 
+#endif /* QOA_NO_STDLIB */
+
+#endif /* QOA_NO_DECODE */
 
 
 /* -----------------------------------------------------------------------------
@@ -699,6 +742,8 @@ short *qoa_decode(const unsigned char *bytes, int size, qoa_desc *qoa) {
 
 #ifndef QOA_NO_STDIO
 #include <stdio.h>
+
+#ifndef QOA_NO_ENCODE
 
 int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
 	FILE *f = fopen(filename, "wb");
@@ -721,6 +766,10 @@ int qoa_write(const char *filename, const short *sample_data, qoa_desc *qoa) {
 	QOA_FREE(encoded);
 	return size;
 }
+
+#endif /* QOA_NO_ENCODE */
+
+#ifndef QOA_NO_DECODE
 
 void *qoa_read(const char *filename, qoa_desc *qoa) {
 	FILE *f = fopen(filename, "rb");
@@ -754,5 +803,6 @@ void *qoa_read(const char *filename, qoa_desc *qoa) {
 	return sample_data;
 }
 
+#endif /* QOA_NO_DECODE */
 #endif /* QOA_NO_STDIO */
 #endif /* QOA_IMPLEMENTATION */
