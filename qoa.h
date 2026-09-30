@@ -501,6 +501,7 @@ void *qoa_encode(const short *sample_data, qoa_desc *qoa, unsigned int *out_len)
 		num_slices * 8 * qoa->channels;                /* 8 byte slices */
 
 	unsigned char *bytes = QOA_MALLOC(encoded_size);
+	if (!bytes) { return NULL; }
 
 	for (unsigned int c = 0; c < qoa->channels; c++) {
 		/* Set the initial LMS weights to {0, 0, -1, 2}. This helps with the 
