@@ -231,7 +231,17 @@ short *qoaconv_wav_read(const char *path, qoa_desc *desc) {
 	Main */
 
 int main(int argc, char **argv) {
-	QOACONV_ASSERT(argc >= 3, "\nUsage: qoaconv in.{wav,mp3,flac,qoa} out.{wav,qoa}")
+#ifdef QOACONV_HAS_DRMP3
+	const char *mp3 = ",mp3";
+#else
+	const char *mp3 = "";
+#endif
+#ifdef QOACONV_HAS_DRFLAC
+	const char *flac = ",flac";
+#else
+	const char *flac = "";
+#endif
+	QOACONV_ASSERT(argc >= 3, "\nUsage: qoaconv in.{wav%s%s,qoa} out.{qoa,wav}", mp3, flac)
 
 	qoa_desc desc;
 	short *sample_data = NULL;
