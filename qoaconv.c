@@ -15,6 +15,9 @@ Compile with:
 
 */
 
+/* use this when compiling for a big-endian target, for example m68k */
+/*#define QOACONV_NATIVE_BIG_ENDIAN 1*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -91,6 +94,16 @@ unsigned short qoaconv_fread_u16_le(FILE *fh) {
 	return (buf[1] << 8) | buf[0];
 }
 
+#ifdef QOACONV_NATIVE_BIG_ENDIAN
+void qoaconv_byteswap(unsigned char *data, unsigned int size) {
+	for (unsigned int i = 0;  i < size;  i += 2) {
+		unsigned char c = data[i];
+		data[i] = data[i + 1];
+		data[i + 1] = c;
+	}
+}
+#endif
+
 int qoaconv_wav_write(const char *path, short *sample_data, qoa_desc *desc) {
 	unsigned int data_size = desc->samples * desc->channels * sizeof(short);
 	unsigned int samplerate = desc->samplerate;
@@ -111,6 +124,10 @@ int qoaconv_wav_write(const char *path, short *sample_data, qoa_desc *desc) {
 	qoaconv_fwrite_u16_le(bits_per_sample, fh);
 	fwrite("data", 1, 4, fh);
 	qoaconv_fwrite_u32_le(data_size, fh);
+#ifdef QOACONV_NATIVE_BIG_ENDIAN
+	/* convert from big-endian (native) to little-endian (wav file) */
+	qoaconv_byteswap((unsigned char *)sample_data, data_size);
+#endif
 	fwrite((void*)sample_data, data_size, 1, fh);
 	fclose(fh);
 	return data_size  + 44 - 8;
@@ -175,6 +192,10 @@ short *qoaconv_wav_read(const char *path, qoa_desc *desc) {
 	int read = fread(wav_bytes, data_size, 1, fh);
 	QOACONV_ASSERT(read, "Read error or unexpected end of file for %d bytes", data_size);
 	fclose(fh);
+#ifdef QOACONV_NATIVE_BIG_ENDIAN
+	/* convert from little-endian (wav file) to big-endian (native) */
+	qoaconv_byteswap(wav_bytes, data_size);
+#endif
 
 	desc->samplerate = samplerate;
 	desc->samples = data_size / (channels * (bits_per_sample/8));
