@@ -51,6 +51,7 @@ and [TypeScript](https://github.com/pfusik/qoa-fu/blob/master/transpiled/QOA.ts)
 - [HaxelWorks/qoa-python](https://github.com/HaxelWorks/qoa-python) - Python wrapper using cffi
 - [Cl Qoa](https://shinmera.github.io/cl-qoa/) - Common Lisp
 - [Resona QOA](https://github.com/MatusOllah/resona/tree/main/codec/qoa) - Pure Go decoder and encoder implementation
+- [QOAMAX](https://github.com/BlobCodes/qoamax) - High-Quality QOA Encoder/Decoder Library and CLI tool
 
 ## QOA Support in Other Software
 
